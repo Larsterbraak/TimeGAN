@@ -1,0 +1,119 @@
+"""
+MSc Thesis Quantitative Finance
+Title: Interest rate risk due to EONIA-ESTER transition
+Author: Lars ter Braak (larsterbraak@gmail.com)
+
+Last updated: May 25th 2020
+Code Author: Lars ter Braak (larsterbraak@gmail.com)
+
+-----------------------------
+
+Data loading
+(1) Load short rate dataset
+ - Transform the raw data to preprocessed data
+
+Inputs
+(1) EONIA, pre-ESTER & ESTER dataset
+- Raw data
+- seq_length: Sequence Length
+
+Outputs
+- Preprocessed time series of European short rates
+"""
+
+# Necessary packages
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import MinMaxScaler
+import tensorflow as tf
+
+def create_dataset(df='pre-ESTER', normalization='min-max',
+                   seq_length=20, training=True):
+    
+    if df == 'EONIA':
+        df = pd.read_csv("data/EONIA.csv", sep=";")
+    elif df == 'pre-ESTER':
+        df = pd.read_csv('data/pre_ESTER.csv', sep = ';')
+        df = df.iloc[:, 1:] # Remove the Date variable from the dataset
+        df = df.iloc[::-1] # Make dataset chronological
+        # Make daily differencing
+        df.iloc[1:,[1,2,4]] = np.diff(df[['R25', 'R75', 'WT']], axis =0)
+        df = df.iloc[1:]
+    elif df == 'ESTER':
+        df = pd.read_csv("data/ESTER.csv", sep=";")
+        df = df.iloc[:, 1:] # Remove the Date variable from the dataset
+        df = df.iloc[::-1]# Make dataset chronological
+        # Make daily differencing
+        df.iloc[1:,[1,2,4]] = np.diff(df[['R25', 'R75', 'WT']], axis =0)
+        df = df.iloc[1:]
+    else:
+        return 'Non-existent dataset. Short rate data can be \
+            "EONIA", "pre-ESTER" or "ESTER."'
+    
+    if normalization == 'min-max':
+        df = MinMaxScaler().fit_transform(df)
+    else:
+        return 'Still have to implement other normalization \
+            techniques.'
+    
+    dataX = []
+    
+    # Make lookback periods of seq_length in the data
+    for i in range(0, len(df) - seq_length):
+        _df = df[i : i + seq_length]
+        dataX.append(_df)
+    
+    # Create random permutations to make it more i.i.d.
+    idx = np.random.permutation(len(dataX))
+    
+    outputX = []
+    for i in range(len(dataX)):
+        outputX.append(dataX[idx[i]])
+        
+    # Reshape to be used by Tensorflow    
+    outputX = np.reshape(outputX, newshape=(len(outputX), 
+                                            seq_length, 
+                                            df.shape[1]))
+    
+    if training:
+        split = int(np.round(outputX.shape[0] * 2 / 3))
+    
+        # Split the data in train and test
+        X_train = outputX[0:split,:,:]
+        X_test = outputX[split:,:,:]
+        
+        X_train = tf.data.Dataset.from_tensor_slices((X_train)).batch(25)
+        X_test = tf.data.Dataset.from_tensor_slices((X_test)).batch(25)
+            
+        return X_train, X_test
+    
+    else:
+        return outputX
+
+def rescale(df, N, seq_length, X_hat_scaled):
+    if df == 'EONIA':
+        df = pd.read_csv("data/EONIA.csv", sep=";")
+    elif df == 'pre-ESTER':
+        df = pd.read_csv('data/pre_ESTER.csv', sep = ';')
+        # Make dataset chronological
+        df = df.iloc[::-1]
+        # Make daily differencing
+        df.iloc[1:,[1,2,4]] = np.diff(df[['R25', 'R75', 'WT']], axis =0)
+        df = df.iloc[1:]
+    elif df == 'ESTER':
+        df = pd.read_csv("data/ESTER.csv", sep=";")
+        df = df.iloc[:115, :]
+    else:
+        return 'Non-existent dataset. Short rate data can be \
+            "EONIA", "pre-ESTER" or "ESTER."'
+    
+    # Rescale back to minimum
+    
+    
+    minimum = np.reshape(np.array([np.min(df).values,]*N*seq_length),
+                         (N, seq_length, df.shape[1]))
+
+    maximum = np.reshape(np.array([np.max(df).values,]*N*seq_length), 
+                         (N, seq_length, df.shape[1]))
+    
+    return X_hat_scaled * (maximum - minimum) + minimum
