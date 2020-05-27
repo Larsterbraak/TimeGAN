@@ -28,11 +28,12 @@ from sklearn.preprocessing import MinMaxScaler
 import tensorflow as tf
 
 def create_dataset(name='pre-ESTER', normalization='min-max',
-                   seq_length=20, training=True, multidimensional=True):
+                   seq_length=20, training=True, multidimensional=True,
+                   ester_probs=False):
     
     if name == 'EONIA':
         df = pd.read_csv("data/EONIA.csv", sep=";")
-        df = df.iloc[:, 1:]
+        df = df.iloc[:, 1:] # Remove the Date variable from the dataset
         df = np.ravel(np.diff(df, axis = 0))
         multidimensional = False
     elif name == 'pre-ESTER':
@@ -70,13 +71,14 @@ def create_dataset(name='pre-ESTER', normalization='min-max',
         _df = df[i : i + seq_length]
         dataX.append(_df)
     
-    # Create random permutations to make it more i.i.d.
-    idx = np.random.permutation(len(dataX))
-    
-    outputX = []
-    for i in range(len(dataX)):
-        outputX.append(dataX[idx[i]])
-     
+    if not ester_probs: 
+        # Create random permutations to make it more i.i.d.
+        idx = np.random.permutation(len(dataX))
+        
+        outputX = []
+        for i in range(len(dataX)):
+            outputX.append(dataX[idx[i]])
+         
     if not multidimensional:
         # Reshape to be used by Tensorflow    
         outputX = np.reshape(outputX, newshape=(len(outputX), 
@@ -102,10 +104,12 @@ def create_dataset(name='pre-ESTER', normalization='min-max',
 def rescale(df, N, seq_length, X_hat_scaled):
     if df == 'EONIA':
         df = pd.read_csv("data/EONIA.csv", sep=";")
+        df = df.iloc[:, 1:] # Remove Date variable from dataset
+        df = np.ravel(np.diff(df, axis = 0))
     elif df == 'pre-ESTER':
         df = pd.read_csv('data/pre_ESTER.csv', sep = ';')
-        # Make dataset chronological
-        df = df.iloc[::-1]
+        df = df.iloc[:, 1:] # Remove Date variable from dataset
+        df = df.iloc[::-1] # Make dataset chronological
         # Make daily differencing
         df.iloc[1:,[1,2,4]] = np.diff(df[['R25', 'R75', 'WT']], axis =0)
         df = df.iloc[1:]

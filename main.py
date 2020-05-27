@@ -45,7 +45,7 @@ hparams = []
 
 parameters = {'hidden_dim':4,
               'num_layers':3,
-              'iterations':5,
+              'iterations':35,
               'batch_size': 25,
               'module_name':'lstm',
               'z_dim':5}
@@ -80,7 +80,7 @@ def run(parameters, hparams):
     d_loss = tf.keras.metrics.Mean(name='d_loss')
     g_loss_u_e = tf.keras.metrics.Mean(name='g_loss_u_e')
     g_loss_s = tf.keras.metrics.Mean(name='g_loss_s')
-    g_loss_v = tf.keras.metrics.Mean(name='g_loss_v')
+    #g_loss_v = tf.keras.metrics.Mean(name='g_loss_v')
     e_loss_T0 = tf.keras.metrics.Mean(name='e_loss_T0')
     g_loss_s_embedder = tf.keras.metrics.Mean(name='g_loss_s_embedder')
     
@@ -151,7 +151,9 @@ def run(parameters, hparams):
         
         # Log the progress to the user console in python    
         template = 'training: Epoch {}, Loss: {}, Test Loss: {}'
-        print(template.format(epoch+1, train_loss.result(),test_loss.result()))
+        print(template.format(epoch+1, 
+                              np.round(train_loss.result().numpy(),8),
+                              np.round(test_loss.result().numpy(), 8)))
     
     print('Finished Embedding Network Training')
 
@@ -198,9 +200,9 @@ def run(parameters, hparams):
             test_step_supervised(x_test)
         
         with summary_writer.as_default():
-            tf.summary.scalar('Temporal relations training/', 
+            tf.summary.scalar('2. Temporal relations training/', 
                               g_loss_s_train.result(), step=epoch)
-            tf.summary.scalar('Temporal relations training/',
+            tf.summary.scalar('2. Temporal relations training/',
                               g_loss_s_test.result(), step=epoch)
             
             if epoch % 10 == 0: # Only log trainable variables per 10 epochs
@@ -360,19 +362,19 @@ def run(parameters, hparams):
             
         with summary_writer.as_default():
             # Log the GAN losses
-            tf.summary.scalar('Joint training/GAN loss/generator',
+            tf.summary.scalar('3. Joint training/GAN loss/generator',
                               g_loss_u_e.result(), step=epoch)
-            tf.summary.scalar('Joint training/GAN loss/discriminator', 
+            tf.summary.scalar('3. Joint training/GAN loss/discriminator', 
                               d_loss.result(), step=epoch)
             
             # Log the temporal relations losses
-            tf.summary.scalar('Joint training/temporal relations/recurrent relations',
+            tf.summary.scalar('3. Joint training/temporal relations/recurrent relations',
                               g_loss_s.result(), step=epoch)
             
             # Log the autoencoder losses
-            tf.summary.scalar('Joint training/autoencoder loss/embedding', 
+            tf.summary.scalar('3. Joint training/autoencoder loss/embedding', 
                               e_loss_T0.result(), step=epoch)
-            tf.summary.scalar('Joint training/autoencoder loss/supervisor',
+            tf.summary.scalar('3. Joint training/autoencoder loss/supervisor',
                               g_loss_s_embedder.result(), step=epoch)
             
         # with tf.summary.create_file_writer('logs/hparam_tuning').as_default():
@@ -410,60 +412,38 @@ def run(parameters, hparams):
             
     print('Finish joint training')
     
-    # # Store the models checkpoints in the logs file
-    # checkpoint_path = "C://Users/s157148/Documents/Github/TimeGAN/logs/cp-test.ckpt"    
-    # discriminator_model.save_weights(checkpoint_path) 
     
-    # discriminator_model2 = Discriminator('logs/TimeGAN2', hparams)
-    # discriminator_model2.build([])
-    # discriminator_model2.load_weights(checkpoint_path)  
-
-    # probs2 = discriminator_model2(H_hat).numpy()
-
-    from data_loading import create_dataset
-    # Check if the ESTER rate is equivalent to the EONIA rate
-    ester = create_dataset(name='ESTER', normalization='min-max',
-                           seq_length=20, training=False, 
-                           multidimensional = False)   
+    # # Check which latent factors are responsible for the 
+    # unravel_latent = np.reshape(H_hat, (H_hat.shape[0] * H_hat.shape[1], H_hat.shape[2]))
+    # unravel_probs = np.ravel(probs)    
     
-    H_hat = embedder_model(ester)
-    probs = discriminator_model(H_hat).numpy()
+    # from sklearn import linear_model
+    # regr = linear_model.LinearRegression()
+    # regr.fit(unravel_latent, unravel_probs)
     
-    # Compute the probabilities 
-    from scipy.special import expit
-    expit(probs) 
+    # print('Intercept: \n', regr.intercept_)
+    # print('Coefficients: \n', regr.coef_)
     
-    # Check which latent factors are responsible for the 
-    unravel_latent = np.reshape(H_hat, (H_hat.shape[0] * H_hat.shape[1], H_hat.shape[2]))
-    unravel_probs = np.ravel(probs)    
+    # import statsmodels.api as sm
+    # X = sm.add_constant(unravel_latent) # adding a constant
+    # model = sm.OLS(unravel_probs, X).fit()    
+    # model.summary()
     
-    from sklearn import linear_model
-    regr = linear_model.LinearRegression()
-    regr.fit(unravel_latent, unravel_probs)
+    from metrics import coverage_test_basel, ester_classifier
+    classification_lower = coverage_test_basel(RandomGenerator,
+                                               generator_model,
+                                               recovery_model,
+                                               lower=True, 
+                                               hidden_dim = 4)
     
-    print('Intercept: \n', regr.intercept_)
-    print('Coefficients: \n', regr.coef_)
+    classification_upper = coverage_test_basel(RandomGenerator,
+                                               generator_model,
+                                               recovery_model,
+                                               lower=False, 
+                                               hidden_dim = 4)
     
-    import statsmodels.api as sm
-    X = sm.add_constant(unravel_latent) # adding a constant
-    model = sm.OLS(unravel_probs, X).fit()    
-    model.summary()
+    probs_ester = ester_classifier(embedder_model, discriminator_model)    
     
-    # Simulate N trajectories of the short rate and calculate the VaR
-    N = 100000
-    Z_mb = RandomGenerator(N, [20, 4])
-    X_hat_scaled = recovery_model(generator_model(Z_mb)).numpy()
-    
-    from data_loading import rescale
-    
-    X_hat = rescale('pre-ESTER', N, 20, X_hat_scaled)
-    
-    # 4. Train on Synthetic, Test on Real
-    from TSTR import value_at_risk
-    
-    VaR = value_at_risk(X_hat = X_hat, percentile = 99, upper = True)
-
-
 # =============================================================================
 # Create a HParams dashboard for hyper parameter tuning
 # =============================================================================
