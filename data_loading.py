@@ -27,19 +27,22 @@ import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 import tensorflow as tf
 
-def create_dataset(df='pre-ESTER', normalization='min-max',
-                   seq_length=20, training=True):
+def create_dataset(name='pre-ESTER', normalization='min-max',
+                   seq_length=20, training=True, multidimensional=True):
     
-    if df == 'EONIA':
+    if name == 'EONIA':
         df = pd.read_csv("data/EONIA.csv", sep=";")
-    elif df == 'pre-ESTER':
+        df = df.iloc[:, 1:]
+        df = np.ravel(np.diff(df, axis = 0))
+        multidimensional = False
+    elif name == 'pre-ESTER':
         df = pd.read_csv('data/pre_ESTER.csv', sep = ';')
         df = df.iloc[:, 1:] # Remove the Date variable from the dataset
         df = df.iloc[::-1] # Make dataset chronological
         # Make daily differencing
         df.iloc[1:,[1,2,4]] = np.diff(df[['R25', 'R75', 'WT']], axis =0)
         df = df.iloc[1:]
-    elif df == 'ESTER':
+    elif name == 'ESTER':
         df = pd.read_csv("data/ESTER.csv", sep=";")
         df = df.iloc[:, 1:] # Remove the Date variable from the dataset
         df = df.iloc[::-1]# Make dataset chronological
@@ -50,12 +53,16 @@ def create_dataset(df='pre-ESTER', normalization='min-max',
         return 'Non-existent dataset. Short rate data can be \
             "EONIA", "pre-ESTER" or "ESTER."'
     
+    if not multidimensional and (name == 'pre-ESTER' or name =='ESTER'):
+        df = np.array(df.WT)
+    
     if normalization == 'min-max':
-        df = MinMaxScaler().fit_transform(df)
+        if multidimensional:
+            df = MinMaxScaler().fit_transform(df)
     else:
         return 'Still have to implement other normalization \
             techniques.'
-    
+            
     dataX = []
     
     # Make lookback periods of seq_length in the data
@@ -69,24 +76,26 @@ def create_dataset(df='pre-ESTER', normalization='min-max',
     outputX = []
     for i in range(len(dataX)):
         outputX.append(dataX[idx[i]])
-        
-    # Reshape to be used by Tensorflow    
-    outputX = np.reshape(outputX, newshape=(len(outputX), 
-                                            seq_length, 
-                                            df.shape[1]))
+     
+    if not multidimensional:
+        # Reshape to be used by Tensorflow    
+        outputX = np.reshape(outputX, newshape=(len(outputX), 
+                                                seq_length, 
+                                                1))
+    else:
+        # Reshape to be used by Tensorflow    
+        outputX = np.reshape(outputX, newshape=(len(outputX), 
+                                                seq_length, 
+                                                df.shape[1]))
     
     if training:
-        split = int(np.round(outputX.shape[0] * 2 / 3))
-    
-        # Split the data in train and test
+        split = int(np.round(outputX.shape[0] * 2 / 3)) # Split in train & test
         X_train = outputX[0:split,:,:]
         X_test = outputX[split:,:,:]
         
         X_train = tf.data.Dataset.from_tensor_slices((X_train)).batch(25)
         X_test = tf.data.Dataset.from_tensor_slices((X_test)).batch(25)
-            
         return X_train, X_test
-    
     else:
         return outputX
 
@@ -108,8 +117,6 @@ def rescale(df, N, seq_length, X_hat_scaled):
             "EONIA", "pre-ESTER" or "ESTER."'
     
     # Rescale back to minimum
-    
-    
     minimum = np.reshape(np.array([np.min(df).values,]*N*seq_length),
                          (N, seq_length, df.shape[1]))
 

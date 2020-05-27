@@ -71,6 +71,10 @@ def plot(hist = False, history = False, pre_ester=False):
         plt.plot_date(dates_EONIA, df_EONIA.EONIA, 'b-', color = '#0C5DA5')
         plt.plot_date(dates_pre_ESTER, df_pre_ESTER.WT.values, 'b-', color = '#00B945')
         plt.plot_date(dates_ESTER, df_ESTER.WT.values, 'b-', color = '#FF9500')
+        ax = plt.gca()
+        
+        ax.set_xlim(datetime.date(2017, 9, 30), datetime.date(2020, 3, 12))
+        ax.set_ylim((-.60, -.20))
         plt.legend(('EONIA', 'pre-€STER', '€STER'), fontsize = 'xx-large')
         plt.ylabel(r'Short rate $r_t$ [%]')
         plt.xlabel(r'Time $t$')
@@ -82,12 +86,12 @@ def plot(hist = False, history = False, pre_ester=False):
         
         # The top plot consisting of daily closing prices
         top = plt.subplot2grid((4, 4), (0, 0), rowspan=3, colspan=4)
-        top.plot(dates_pre_ESTER, df_pre_ESTER.R25, 
-                 label = r'$25^{th}$ percentile €STER')
-        top.plot(dates_pre_ESTER, df_pre_ESTER.WT, 
-                 label = r'Weighted trimmed mean €STER')
         top.plot(dates_pre_ESTER, df_pre_ESTER.R75, 
                  label = r'$75^{th}$ percentile €STER')
+        top.plot(dates_pre_ESTER, df_pre_ESTER.WT, 
+                 label = r'Weighted trimmed mean €STER')
+        top.plot(dates_pre_ESTER, df_pre_ESTER.R25, 
+                 label = r'$25^{th}$ percentile €STER')
         plt.title('€STER during pre-€STER period')
         plt.xlabel(r'Time $t$')
         plt.ylabel(r'Short rate $r_t$ [$\%$]')
