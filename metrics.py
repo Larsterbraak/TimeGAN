@@ -28,8 +28,9 @@ from TSTR import value_at_risk
 from data_loading import create_dataset
 from scipy.stats import binom
 from scipy.special import expit
+from training import RandomGenerator
     
-def coverage_test_basel(RandomGenerator, generator_model, recovery_model,
+def coverage_test_basel(generator_model, recovery_model,
                         lower=True, hidden_dim = 4):
     
     # Get the EONIA T-day real values
@@ -37,7 +38,7 @@ def coverage_test_basel(RandomGenerator, generator_model, recovery_model,
     EONIA = np.reshape(EONIA, (EONIA.shape[0], EONIA.shape[1])) # These T-day intervals are shuffled
         
     # Specify Nr. simulations and T
-    N = 10000
+    N = 1000
     T = 20
     exceedances = 0 # Initialize the number of exceedances
     
@@ -50,10 +51,10 @@ def coverage_test_basel(RandomGenerator, generator_model, recovery_model,
         # Train on Synthetic, Test on Real
         if lower:
             VaR_l = value_at_risk(X_hat=X_hat_scaled, percentile=99, upper=False)
-            exceedances = exceedances + int(VaR_l < value)
+            exceedances = exceedances + int(value < VaR_l)
         else:    
             VaR_u = value_at_risk(X_hat=X_hat_scaled, percentile=99, upper=True)
-            exceedances = exceedances + int(VaR_u > value)
+            exceedances = exceedances + int(VaR_u < value)
         
     prob = binom.cdf(np.sum(exceedances), 250, .01)
     

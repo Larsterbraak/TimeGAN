@@ -8,11 +8,11 @@ tf.keras.backend.set_floatx('float64')
 
 # Embedder network in Tensorflow 2.x
 class Embedder(Model):
-  def __init__(self, tensorboard_folder_path, hparams):
+  def __init__(self, tensorboard_folder_path, hparams, dimensionality):
     super(Embedder, self).__init__()
     self.LSTM1 = LSTM(units=10, 
                       return_sequences=True,
-                      input_shape=(20,5),
+                      input_shape=(20,dimensionality),
                       kernel_initializer = 'he_uniform',
                       dropout = 0.2,
                       recurrent_dropout = 0.2,

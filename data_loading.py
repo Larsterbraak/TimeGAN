@@ -33,7 +33,7 @@ def create_dataset(name='pre-ESTER', normalization='min-max',
     
     if name == 'EONIA':
         df = pd.read_csv("data/EONIA.csv", sep=";")
-        df = df.iloc[:, 1:] # Remove the Date variable from the dataset
+        df = df.iloc[:, 2:] # Remove the Date variable from the dataset
         df = np.ravel(np.diff(df, axis = 0))
         multidimensional = False
     elif name == 'pre-ESTER':
@@ -81,7 +81,7 @@ def create_dataset(name='pre-ESTER', normalization='min-max',
          
     if not multidimensional:
         # Reshape to be used by Tensorflow    
-        outputX = np.reshape(outputX, newshape=(len(outputX), 
+        outputX = np.reshape(dataX, newshape=(len(dataX), 
                                                 seq_length, 
                                                 1))
     else:
@@ -95,8 +95,8 @@ def create_dataset(name='pre-ESTER', normalization='min-max',
         X_train = outputX[0:split,:,:]
         X_test = outputX[split:,:,:]
         
-        X_train = tf.data.Dataset.from_tensor_slices((X_train)).batch(25)
-        X_test = tf.data.Dataset.from_tensor_slices((X_test)).batch(25)
+        X_train = tf.data.Dataset.from_tensor_slices(tf.cast(X_train, tf.float64)).batch(50)
+        X_test = tf.data.Dataset.from_tensor_slices(tf.cast(X_test, tf.float64)).batch(50)
         return X_train, X_test
     else:
         return outputX

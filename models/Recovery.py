@@ -1,10 +1,9 @@
-import tensorflow as tf
 from tensorflow.keras import Model
 from tensorflow.keras.layers import LSTM, Dense
 
 # Recovery network in Tensorflow 2.x
 class Recovery(Model):
-  def __init__(self, tensorboard_folder_path, hparams):
+  def __init__(self, tensorboard_folder_path, hparams, dimensionality):
     super(Recovery, self).__init__()
     self.LSTM1 = LSTM(units=10, 
                       return_sequences=True,
@@ -25,7 +24,7 @@ class Recovery(Model):
                       dropout = 0.2,
                       recurrent_dropout = 0.2,
                       name = 'LSTM3')
-    self.Dense1 = Dense(units=5, 
+    self.Dense1 = Dense(units=dimensionality, 
                         activation='sigmoid', 
                         name = 'Dense1')
     self.graph_has_been_written=False

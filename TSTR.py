@@ -36,4 +36,4 @@ def value_at_risk(X_hat, percentile = 99, upper = True):
     if upper:
         return np.percentile(VaR, percentile)
     else:
-        return np.percentile(VaR, 1-percentile)    
+        return np.percentile(VaR, 100-percentile)    
