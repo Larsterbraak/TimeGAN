@@ -6,6 +6,9 @@ from tensorflow.keras.layers import LSTM, Dense
 tf.keras.backend.clear_session()
 tf.keras.backend.set_floatx('float64')
 
+# Enable XLA
+tf.config.optimizer.set_jit(True)
+
 # Embedder network in Tensorflow 2.x
 class Embedder(Model):
   def __init__(self, tensorboard_folder_path, hparams, dimensionality):

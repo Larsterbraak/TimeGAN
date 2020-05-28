@@ -73,7 +73,8 @@ loss_object_adversarial = tf.losses.BinaryCrossentropy(from_logits=True)
 # does not have an activation -- could be differently specified
 optimizer = tf.keras.optimizers.Adam(0.01)
 
-#tf.compat.v1.disbale_eager_execution()
+tf.compat.v1.disable_eager_execution()
+tf.executing_eagerly()
 
 # 1. Start with embedder training (Optimal LSTM auto encoder network)
 @tf.function
