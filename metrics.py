@@ -29,6 +29,28 @@ from data_loading import create_dataset
 from scipy.stats import binom
 from scipy.special import expit
 from training import RandomGenerator
+
+def load_models():    
+    from models.Discriminator import Discriminator
+    from models.Recovery import Recovery
+    from models.Generator import Generator
+    from models.Embedder import Embedder
+
+
+    # Only use when you want to load the models
+    d_model_pre_trained = Discriminator('logs/d_model_pre_train', [])  
+    d_model_pre_trained.load_weights('models/discriminator_weights')
+    
+    g_model_pre_trained = Generator('logs/g_model_pre_train', [])
+    g_model_pre_trained.load_weights('models/generator_weights')
+    
+    r_model_pre_trained = Recovery('logs/r_model_pre_train', [], dimensionality = 1)
+    r_model_pre_trained.load_weights('models/recovery_weights')
+    
+    e_model_pre_trained = Embedder('logs/e_model_pre_train', [], dimensionality = 1)
+    e_model_pre_trained.load_weights('models/embedder_weights')
+
+    return e_model_pre_trained, r_model_pre_trained, g_model_pre_trained, d_model_pre_trained
     
 def coverage_test_basel(generator_model, recovery_model,
                         lower=True, hidden_dim = 4):
@@ -55,6 +77,8 @@ def coverage_test_basel(generator_model, recovery_model,
         else:    
             VaR_u = value_at_risk(X_hat=X_hat_scaled, percentile=99, upper=True)
             exceedances = exceedances + int(VaR_u < value)
+            
+        print(i)
         
     prob = binom.cdf(np.sum(exceedances), 250, .01)
     

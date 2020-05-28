@@ -34,21 +34,12 @@ X_train, X_test = create_dataset(name = 'EONIA',
                                  multidimensional=False)
 
 # 3. Train TimeGAN model
-from models.Embedder import Embedder
-from models.Recovery import Recovery
-from models.Generator import Generator
-from models.Supervisor import Supervisor
-from models.Discriminator import Discriminator
-from training import add_hist, RandomGenerator
+hparams = [] # Used for hyperparameter tuning
+parameters = {'hidden_dim':4, 'num_layers':3, 'iterations':100,
+              'batch_size': 25, 'module_name':'lstm', 'z_dim':5}
 
-hparams = []
-
-parameters = {'hidden_dim':4,
-              'num_layers':3,
-              'iterations':20,
-              'batch_size': 25,
-              'module_name':'lstm',
-              'z_dim':5}
+from tgan import run
+run(parameters, hparams, X_train, X_test)
 
 def run(parameters, hparams):
     
@@ -388,10 +379,8 @@ def run(parameters, hparams):
                          epoch + already_done_epochs)
                 add_hist(supervisor_model.trainable_variables,
                          epoch + already_done_epochs)
-            
-        # Checkpoints
-        if epoch % 1 == 0:
-            print('step: '+ str(epoch+1) +  
+                
+                print('step: '+ str(epoch+1) +  
                   ', g_loss_u_e: ' + str(np.round(g_loss_u_e.result().numpy(),8)) + 
                   ', g_loss_s: ' + str(np.round(np.sqrt(g_loss_s.result().numpy()),8)) + 
                   #', g_loss_v: ' + str(np.round(g_loss_v.result().numpy(),8)) + 
@@ -399,45 +388,59 @@ def run(parameters, hparams):
                   ', g_loss_s_embedder: ' + 
                   str(np.round(g_loss_s_embedder.result().numpy(),8)) +
                   ', e_loss_t0: ' + str(np.round(np.sqrt(e_loss_T0.result().numpy()),8)) + 
-                  ', d_loss: ' + str(np.round(d_loss.result().numpy(),8)))    
+                  ', d_loss: ' + str(np.round(d_loss.result().numpy(),8))) 
+                
+            if epoch % 50 == 0:
+                # Lastly save all models
+                embedder_model.save_weights('weights/embedder/' + str(epoch))
+                recovery_model.save_weights('weights/recovery/' + str(epoch))
+                supervisor_model.save_weights('weights/supervisor/' + str(epoch))
+                generator_model.save_weights('weights/generator/' + str(epoch))
+                discriminator_model.save_weights('weights/discriminator/' + str(epoch)) 
             
     print('Finish joint training')
-    
-    embedder_model.save_weights('weights/embedder')
-    recovery_model.save_weights('weights/recovery')
-    supervisor_model.save_weights('weights/supervisor')
-    generator_model.save_weights('weights/generator')
-    discriminator_model.save_weights('weights/discriminator')
-    
-    # # Check which latent factors are responsible for the 
-    # unravel_latent = np.reshape(H_hat, (H_hat.shape[0] * H_hat.shape[1], H_hat.shape[2]))
-    # unravel_probs = np.ravel(probs)    
-    
-    # from sklearn import linear_model
-    # regr = linear_model.LinearRegression()
-    # regr.fit(unravel_latent, unravel_probs)
-    
-    # print('Intercept: \n', regr.intercept_)
-    # print('Coefficients: \n', regr.coef_)
-    
-    # import statsmodels.api as sm
-    # X = sm.add_constant(unravel_latent) # adding a constant
-    # model = sm.OLS(unravel_probs, X).fit()    
-    # model.summary()
-    
-    from metrics import coverage_test_basel, ester_classifier
-    classification_lower = coverage_test_basel(generator_model,
-                                               recovery_model,
-                                               lower=True, 
-                                               hidden_dim = 4)
-    
-    classification_upper = coverage_test_basel(RandomGenerator,
-                                               generator_model,
-                                               recovery_model,
-                                               lower=False, 
-                                               hidden_dim = 4)
-    
-    probs_ester = ester_classifier(embedder_model, discriminator_model)    
+
+
+# 4. Perform the Train on Synthetic, Test on Real
+from metrics import load_models, coverage_test_basel, ester_classifier
+
+e_model, r_model, g_model, d_model = load_models() # Load pre-trained models
+
+# Perform the coverage test for a lower and upper Value-at-Risk
+classification_lower = coverage_test_basel(generator_model = g_model,
+                                           recovery_model = r_model,
+                                           lower=True, 
+                                           hidden_dim = 4)
+
+classification_upper = coverage_test_basel(generator_model = g_model,
+                                           recovery_model = r_model,
+                                           lower=False, 
+                                           hidden_dim = 4)
+
+# Calculate prob of ESTER for TimeGAN calibrated on EONIA 
+probs_ester = ester_classifier(embedder_model = e_model,
+                               discriminator_model = d_model)    
+
+# The probabilities are some where aroud 0.5 so it can not tell whether
+# or not it is different from EONIA
+
+# Here we must know the stylized facts per time step and then we can form a correlation matrix 
+
+# # Check which latent factors are responsible for the 
+# unravel_latent = np.reshape(H_hat, (H_hat.shape[0] * H_hat.shape[1], H_hat.shape[2]))
+# unravel_probs = np.ravel(probs)    
+
+# from sklearn import linear_model
+# regr = linear_model.LinearRegression()
+# regr.fit(unravel_latent, unravel_probs)
+
+# print('Intercept: \n', regr.intercept_)
+# print('Coefficients: \n', regr.coef_)
+
+# import statsmodels.api as sm
+# X = sm.add_constant(unravel_latent) # adding a constant
+# model = sm.OLS(unravel_probs, X).fit()    
+# model.summary()
     
 # =============================================================================
 # Create a HParams dashboard for hyper parameter tuning

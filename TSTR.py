@@ -28,7 +28,7 @@ def value_at_risk(X_hat, percentile = 99, upper = True):
     VaR = []
     
     for i in range(X_hat.shape[0]):
-        _x = np.cumsum(X_hat[i, :, 4])
+        _x = np.cumsum(X_hat[i, :, 0])
         VaR.append(_x[-1])
         
     VaR = np.array(VaR)
