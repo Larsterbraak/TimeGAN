@@ -35,7 +35,7 @@ from models.Discriminator import Discriminator
 from training import add_hist, RandomGenerator
 
 # Import all scalars descriptions
-from descriptions_tensorboard import descr_auto_loss, descr_auto_grads_embedder, descr_auto_grads_recovery, descr_supervisor_loss, descr_auto_grads_supervisor 
+from descriptions_tensorboard import descr_auto_loss, descr_auto_grads_embedder, descr_auto_grads_recovery, descr_supervisor_loss, descr_auto_grads_supervisor, descr_auto_loss_joint_auto, descr_auto_loss_joint_supervisor, descr_supervisor_loss_joint, descr_generator_loss_joint, descr_discriminator_loss_joint
 
 os.chdir('C://Users/s157148/Documents/Github/TimeGAN')
 
@@ -155,21 +155,21 @@ def run(parameters, hparams, X_train, X_test):
                 add_hist(recovery_model.trainable_variables, epoch)
         
         with summary_writer_test.as_default():
-            tf.summary.scalar('1. Autoencoder training/loss', 
+            tf.summary.scalar('1. Autoencoder training/1. loss', 
                               r_loss_test.result(), step=epoch,
                               description = str(descr_auto_loss()))
         
         with summary_writer_bottom.as_default():
-            tf.summary.scalar('1. Autoencoder training/gradients - embedder',
+            tf.summary.scalar('1. Autoencoder training/2. gradients - embedder',
                               grad_embedder_ll.result(), step=epoch)
-            tf.summary.scalar('1. Autoencoder training/gradients - recovery',
+            tf.summary.scalar('1. Autoencoder training/2. gradients - recovery',
                               grad_recovery_ll.result(), step=epoch)
         
         with summary_writer_top.as_default():
-            tf.summary.scalar('1. Autoencoder training/gradients - embedder',
+            tf.summary.scalar('1. Autoencoder training/2. gradients - embedder',
                               grad_embedder_ul.result(), step=epoch,
                               description = str(descr_auto_grads_embedder()))
-            tf.summary.scalar('1. Autoencoder training/gradients - recovery',
+            tf.summary.scalar('1. Autoencoder training/2. gradients - recovery',
                               grad_recovery_ul.result(), step=epoch,
                               description = str(descr_auto_grads_recovery()))
        
@@ -234,16 +234,16 @@ def run(parameters, hparams, X_train, X_test):
                 add_hist(supervisor_model.trainable_variables, epoch)
        
         with summary_writer_test.as_default():
-                tf.summary.scalar('2. Temporal training/',
+                tf.summary.scalar('2. Temporal training/1. loss',
                               g_loss_s_test.result(), step=epoch,
                               description = str(descr_supervisor_loss()))
                 
         with summary_writer_bottom.as_default():
-            tf.summary.scalar('2. Temporal training/gradients - supervisor',
+            tf.summary.scalar('2. Temporal training/2. gradients - supervisor',
                               grad_supervisor_ll.result(), step=epoch)
         
         with summary_writer_top.as_default():
-            tf.summary.scalar('2. Temporal training/gradients - supervisor',
+            tf.summary.scalar('2. Temporal training/2. gradients - supervisor',
                               grad_supervisor_ul.result(), step=epoch,
                               description = str(descr_auto_grads_supervisor()))
             
@@ -256,20 +256,23 @@ def run(parameters, hparams, X_train, X_test):
     # 3. Continue with joint training
     @tf.function(input_signature=[tf.TensorSpec(shape=(None,20,1), dtype=tf.float64),
                                   tf.TensorSpec(shape=(None,20,hidden_dim), dtype=tf.float64)])
-    def train_step_jointly_generator(X_train, Z):
+    def train_step_jointly_generator(X_train, Z, graphing):
         with tf.GradientTape() as tape:
-          # We need these steps to make the graph in Tensorboard complete
-          dummy = embedder_model(X_train)
-          dummy2 = recovery_model(dummy)
-          dummy3 = supervisor_model(dummy)
-          
+            	
+          if graphing:
+              # We need these steps to make the graph in Tensorboard complete
+              dummy = embedder_model(x_train)
+              dummy2 = recovery_model(dummy)
+              dummy3 = supervisor_model(dummy)
+              
           # Apply Generator to Z and apply Supervisor on fake embedding
-          E_hat = generator_model(Z)
+          E_hat = generator_model(Z_mb)
           H_hat = supervisor_model(E_hat)
           
-          # Dummy discriminator run to make graph in Tensorboard complete
-          dummy4 = discriminator_model([E_hat, dummy])
-          
+          if graphing:
+              # Dummy discriminator run to make graph in Tensorboard complete
+              dummy4 = discriminator_model(dummy)
+              
           # Compute real and fake probabilities using Discriminator model
           Y_fake_e = discriminator_model(E_hat)
           
@@ -353,7 +356,18 @@ def run(parameters, hparams, X_train, X_test):
                                           discriminator_model.trainable_variables))
                 
             # Compute the discriminator loss
-            d_loss(D_loss) 
+            d_loss(D_loss)
+            
+        def evaluate_accuracy(X_test, Z):
+            Y_real_test = discriminator_model(X_test)
+            Y_fake_test = discriminator_model(Z)
+            
+            D_accuracy_real = loss_object_accuracy(tf.ones_like(Y_real_test), Y_real)
+            D_accuracy_fake = loss_object_accuracy(tf.zeros_like(Y_fake_test), Y_fake_test)
+            
+            D_accuracy = D_accuracy_real + D_accuracy_fake
+            
+            d_accuracy(D_accuracy)# Log the accuracy
         
     # Helper counter for the already performed epochs
     already_done_epochs = epoch
@@ -363,6 +377,7 @@ def run(parameters, hparams, X_train, X_test):
     for epoch in range(iterations):
         g_loss_u_e.reset_states() # Reset the loss at every epoch
         g_loss_s.reset_states()
+        
         e_loss_T0.reset_states()
         g_loss_s_embedder.reset_states()
         
@@ -370,38 +385,54 @@ def run(parameters, hparams, X_train, X_test):
         
         # This for loop is the generator training
         # Create 2 generator and embedding training iters. Just like paper.
-        for kk in range(2): # Make a random generation
+        for kk in range(1): # Make a random generation
             Z_minibatch = RandomGenerator(batch_size, [20, hidden_dim])
-                
-            # Train the generator and embedder sequentially
-            for x_train in X_train:
-                train_step_jointly_generator(x_train, Z_minibatch)
-                train_step_jointly_embedder(x_train)
+            
+            if epoch == 0 and kk == 1:
+                # Train the generator and embedder sequentially
+                for x_train in X_train:
+                    train_step_jointly_generator(x_train, Z_minibatch, True)
+                    train_step_jointly_embedder(x_train)
+            else:
+                # Train the generator and embedder sequentially
+                for x_train in X_train:
+                    train_step_jointly_generator(x_train, Z_minibatch, False)
+                    train_step_jointly_embedder(x_train)
        
         # This for loop is the discriminator training
         # Train discriminator if too bad or at initialization (0.0)
         if d_loss.result() > 0.15 or d_loss.result() == 0.0:
-            for kk in range(7): # Train d to optimum (Jensen-Shannon diverge)
-                Z_mb = RandomGenerator(batch_size, [20, hidden_dim])
+            for kk in range(1): # Train d to optimum (Jensen-Shannon diverge)
                 for x_train in X_train: # Train the discriminator for 5 epochs
+                    Z_mb = RandomGenerator(batch_size, [20, hidden_dim])
                     train_step_discriminator(x_train, Z_mb)
+        
+        # Compute the test accuracy
+        for x_test in X_test:
+            Z_mb = RandomGenerator(batch_size, [20, hidden_dim])
+            evaluate_accuracy(x_test, Z_mb)
             
         with summary_writer_train.as_default():  
             # Log autoencoder + supervisor losses
             tf.summary.scalar('3. Joint training - Autoencoder/recovery', 
-                              e_loss_T0.result(), step=epoch)
+                              e_loss_T0.result(), step=epoch,
+                              description = str(descr_auto_loss_joint_auto()))
             tf.summary.scalar('3. Joint training - Autoencoder/supervisor',
-                              g_loss_s_embedder.result(), step=epoch)
+                              g_loss_s_embedder.result(), step=epoch,
+                              description = str(descr_auto_loss_joint_supervisor()))
             
-            # Log supervisor loss on fake embedding samples
-            tf.summary.scalar('3. Joint training - Temporal relations/supervisor',
-                              g_loss_s.result(), step=epoch)
+            # Log supervisor loss on generator
+            tf.summary.scalar('3. Joint training - GAN/temporal supervisor',
+                              g_loss_s.result(), step=epoch,
+                              description = str(descr_supervisor_loss_joint()))
         
             # Log GAN losses
             tf.summary.scalar('3. Joint training - GAN/generator',
-                              g_loss_u_e.result(), step=epoch)
+                              g_loss_u_e.result(), step=epoch,
+                              description = str(descr_generator_loss_joint()))
             tf.summary.scalar('3. Joint training - GAN/discriminator', 
-                              d_loss.result(), step=epoch)
+                              d_loss.result(), step=epoch,
+                              description = str(descr_discriminator_loss_joint()))
             
         # with tf.summary.create_file_writer('logs/hparam_tuning').as_default():
         #     tf.summary.scalar(METRIC_G_LOSS_U, g_loss_u.result(), step=epoch)

@@ -29,6 +29,7 @@ class Discriminator(Model):
                             activation=None,
                             name='Dense1')
         self.graph_has_been_written=False
+        self.i = 0
         self.tensorboard_folder_path = tensorboard_folder_path
         
     def call(self, x):
@@ -38,7 +39,7 @@ class Discriminator(Model):
         x = self.Dense1(x)
         
         # Print the graph in TensorBoard
-        if not self.graph_has_been_written:
+        if not self.graph_has_been_written and self.i != 0:
             model_graph = x.graph
             writer = tf.compat.v1.summary.FileWriter(logdir=self.tensorboard_folder_path,
                                                      graph=model_graph)
@@ -46,4 +47,5 @@ class Discriminator(Model):
             self.graph_has_been_written = True
             print("Wrote eager graph to:", self.tensorboard_folder_path)
         
+        self.i = self.i + 1 # Log the number of calls to the discriminator model 
         return x
