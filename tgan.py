@@ -362,18 +362,19 @@ def run(parameters, hparams, X_train, X_test):
         #     tf.summary.scalar(METRIC_D_LOSS, d_loss.result(), step=epoch)
         
             # Only log the weights of the model per 10 epochs
-            if epoch % 10 == 0:    
-                # Add all variables to the histogram and distribution 
-                add_hist(generator_model.trainable_variables, 
-                         epoch + already_done_epochs)
-                add_hist(supervisor_model.trainable_variables,
-                         epoch + already_done_epochs)
+            if epoch % 10 == 0:  # Add variables to histogram and distribution   
+                
+                # Pre-trained models
                 add_hist(embedder_model.trainable_variables,
-                         epoch + already_done_epochs)
-                add_hist(discriminator_model.trainable_variables,
-                         epoch + already_done_epochs)
+                         epoch + already_done_epochs) 
+                add_hist(recovery_model.trainable_variables,
+                         epoch + already_done_epochs) 
                 add_hist(supervisor_model.trainable_variables,
                          epoch + already_done_epochs)
+                
+                # Not pre-trained models
+                add_hist(generator_model.trainable_variables, epoch) 
+                add_hist(discriminator_model.trainable_variables, epoch)
                 
             if epoch % 50 == 0: # It takes around an hour to do 10 epochs
                 # Lastly save all models
