@@ -35,7 +35,7 @@ X_train, X_test = create_dataset(name = 'EONIA',
 
 # 3. Train TimeGAN model
 hparams = [] # Used for hyperparameter tuning
-parameters = {'hidden_dim':4, 'num_layers':3, 'iterations':500,
+parameters = {'hidden_dim':4, 'num_layers':3, 'iterations':3,
               'batch_size': 25, 'module_name':'lstm', 'z_dim':5}
 
 from tgan import run
@@ -90,7 +90,7 @@ def run(parameters, hparams):
     @tf.function(input_signature=[tf.TensorSpec(shape=(None,20,1), 
                                                 dtype=tf.float64)])
     def train_step_embedder(X_train):
-        with tf.GradientTape() as tape:
+        with tf.GradientTape() as tape: # tape.watch(X_train) is not necessary          
             # Apply Embedder to data and Recovery to predicted hidden states 
             e_pred_train = embedder_model(X_train)
             
@@ -107,6 +107,15 @@ def run(parameters, hparams):
         gradients = tape.gradient(R_loss_train, 
                                   embedder_model.trainable_variables +
                                   recovery_model.trainable_variables)
+        
+        # Possibility to include a custom gradient - for instance clipping the normalization
+        
+        # # Establish an identity operation, but clip during the gradient pass
+        # @tf.custom_gradient
+        # def clip_gradients(y):
+        #     def backward(dy):
+        #         return tf.clip_by_norm(dy, 0.5)
+        #     return y, backward
         
         # Apply the gradients to the Embedder and Recovery vars
         optimizer.apply_gradients(zip(gradients, 

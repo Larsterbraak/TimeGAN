@@ -26,13 +26,13 @@ class Embedder(Model):
                       dropout = 0.2,
                       recurrent_dropout = 0.2,
                       name = 'LSTM2')
-    self.LSTM3 = LSTM(units=4,
+    self.LSTM3 = LSTM(units=4, # []
                       return_sequences=True,
                       kernel_initializer = 'he_uniform',
                       dropout = 0.2,
                       recurrent_dropout = 0.2,
                       name = 'LSTM3')
-    self.Dense1 = Dense(units=4,
+    self.Dense1 = Dense(units=4, # [4 x 4] weight grads + [4,1] bias grads
                         activation='sigmoid', # To ensure [0, 1]
                         name = 'Dense1')
     self.graph_has_been_written=False

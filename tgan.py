@@ -34,6 +34,9 @@ from models.Supervisor import Supervisor
 from models.Discriminator import Discriminator
 from training import add_hist, RandomGenerator
 
+# Import all scalars descriptions
+from descriptions_tensorboard import descr_auto_loss, descr_auto_grads_embedder, descr_auto_grads_recovery, descr_supervisor_loss, descr_auto_grads_supervisor 
+
 os.chdir('C://Users/s157148/Documents/Github/TimeGAN')
 
 def run(parameters, hparams, X_train, X_test):
@@ -52,6 +55,8 @@ def run(parameters, hparams, X_train, X_test):
     log_dir = 'logs/' + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     summary_writer_train = tf.summary.create_file_writer(log_dir + '/train')
     summary_writer_test = tf.summary.create_file_writer(log_dir + '/test')
+    summary_writer_bottom = tf.summary.create_file_writer(log_dir + '/bottom')
+    summary_writer_top = tf.summary.create_file_writer(log_dir + '/top')
     
     # Create an instance of all neural networks models (All LSTM)
     embedder_model = Embedder('logs/embedder', hparams, dimensionality = 1)
@@ -63,8 +68,16 @@ def run(parameters, hparams, X_train, X_test):
     r_loss_train = tf.keras.metrics.Mean(name='r_loss_train') # Step 1 metrics 
     r_loss_test = tf.keras.metrics.Mean(name='r_loss_test')
     
+    grad_embedder_ll = tf.keras.metrics.Mean(name='e_grad_lower_layer')
+    grad_embedder_ul = tf.keras.metrics.Mean(name='e_grad_upper_layer')
+    grad_recovery_ll = tf.keras.metrics.Mean(name='r_grad_lower_layer')
+    grad_recovery_ul = tf.keras.metrics.Mean(name='r_grad_upper_layer')
+    
     g_loss_s_train = tf.keras.metrics.Mean(name='g_loss_s_train') # Step 2 metrics
     g_loss_s_test = tf.keras.metrics.Mean(name='g_loss_s_test')
+    
+    grad_supervisor_ll = tf.keras.metrics.Mean(name='s_grad_lower_layer')
+    grad_supervisor_ul = tf.keras.metrics.Mean(name='s_grad_upper_layer')
     
     e_loss_T0 = tf.keras.metrics.Mean(name='e_loss_T0') # Step 3 metrics
     g_loss_s_embedder = tf.keras.metrics.Mean(name='g_loss_s_embedder')
@@ -88,14 +101,10 @@ def run(parameters, hparams, X_train, X_test):
         with tf.GradientTape() as tape:
             # Apply Embedder to data and Recovery to predicted hidden states 
             e_pred_train = embedder_model(X_train)
-            
-            #print(e_pred_train) # Only printed while tracing the graph in first run
             r_pred_train = recovery_model(e_pred_train)
-            #print(r_pred_train) # Only printed while tracing the graph in first run
             
             # Compute loss for LSTM autoencoder
             R_loss_train = loss_object(X_train, r_pred_train)
-            #print(R_loss_train) # Only printed while tracing the graph in the first run
             #tf.debugging.assert_non_negative(r_loss_train) # Check if non-negative
         
         # Compute the gradients with respect to the Embedder and Recovery vars
@@ -108,6 +117,11 @@ def run(parameters, hparams, X_train, X_test):
                                       embedder_model.trainable_variables +
                                       recovery_model.trainable_variables))
         
+        # Record the lower and upper layer gradients + the MSE for the autoencoder
+        grad_embedder_ll(gradients[1])
+        grad_embedder_ul(gradients[9])
+        grad_recovery_ll(gradients[12])
+        grad_recovery_ul(gradients[20])
         r_loss_train(R_loss_train)
         
     @tf.function(input_signature=[tf.TensorSpec(shape=(None,20,1), 
@@ -134,15 +148,30 @@ def run(parameters, hparams, X_train, X_test):
             test_step_embedder(x_test)
        
         with summary_writer_train.as_default():
-            tf.summary.scalar('1. Autoencoder training/', 
-                              r_loss_train.result(),step=epoch)
+            tf.summary.scalar('1. Autoencoder training/loss', 
+                              r_loss_train.result(), step=epoch)
             if epoch % 10 == 0: # Only log trainable variables per 10 epochs
                 add_hist(embedder_model.trainable_variables, epoch)
                 add_hist(recovery_model.trainable_variables, epoch)
         
         with summary_writer_test.as_default():
-            tf.summary.scalar('1. Autoencoder training/', 
-                              r_loss_test.result(), step=epoch)
+            tf.summary.scalar('1. Autoencoder training/loss', 
+                              r_loss_test.result(), step=epoch,
+                              description = str(descr_auto_loss()))
+        
+        with summary_writer_bottom.as_default():
+            tf.summary.scalar('1. Autoencoder training/gradients - embedder',
+                              grad_embedder_ll.result(), step=epoch)
+            tf.summary.scalar('1. Autoencoder training/gradients - recovery',
+                              grad_recovery_ll.result(), step=epoch)
+        
+        with summary_writer_top.as_default():
+            tf.summary.scalar('1. Autoencoder training/gradients - embedder',
+                              grad_embedder_ul.result(), step=epoch,
+                              description = str(descr_auto_grads_embedder()))
+            tf.summary.scalar('1. Autoencoder training/gradients - recovery',
+                              grad_recovery_ul.result(), step=epoch,
+                              description = str(descr_auto_grads_recovery()))
        
         # Log the progress to the user console in python    
         template = 'Autoencoder training: Epoch {}, Loss: {}, Test Loss: {}'
@@ -174,7 +203,9 @@ def run(parameters, hparams, X_train, X_test):
       optimizer.apply_gradients(zip(gradients, 
                                     supervisor_model.trainable_variables))
       
-      # Compute the training loss for the supervised model
+      # Record the lower and upper layer gradients + the MSE for the supervisor
+      grad_supervisor_ll(gradients[1])
+      grad_supervisor_ul(gradients[6])
       g_loss_s_train(G_loss_S_train)
       
     @tf.function(input_signature=[tf.TensorSpec(shape=(None,20,1), 
@@ -197,14 +228,24 @@ def run(parameters, hparams, X_train, X_test):
             test_step_supervised(x_test)
         
         with summary_writer_train.as_default():
-            tf.summary.scalar('2. Temporal relations training/', 
+            tf.summary.scalar('2. Temporal training/', 
                               g_loss_s_train.result(), step=epoch)
             if epoch % 10 == 0: # Only log trainable variables per 10 epochs
-                add_hist(generator_model.trainable_variables, epoch)
                 add_hist(supervisor_model.trainable_variables, epoch)
+       
         with summary_writer_test.as_default():
-                tf.summary.scalar('2. Temporal relations training/',
-                              g_loss_s_test.result(), step=epoch)
+                tf.summary.scalar('2. Temporal training/',
+                              g_loss_s_test.result(), step=epoch,
+                              description = str(descr_supervisor_loss()))
+                
+        with summary_writer_bottom.as_default():
+            tf.summary.scalar('2. Temporal training/gradients - supervisor',
+                              grad_supervisor_ll.result(), step=epoch)
+        
+        with summary_writer_top.as_default():
+            tf.summary.scalar('2. Temporal training/gradients - supervisor',
+                              grad_supervisor_ul.result(), step=epoch,
+                              description = str(descr_auto_grads_supervisor()))
             
         template = 'Epoch {}, Train Loss: {}, Test loss: {}'
         print(template.format(epoch+1, 
@@ -217,9 +258,17 @@ def run(parameters, hparams, X_train, X_test):
                                   tf.TensorSpec(shape=(None,20,hidden_dim), dtype=tf.float64)])
     def train_step_jointly_generator(X_train, Z):
         with tf.GradientTape() as tape:
+          # We need these steps to make the graph in Tensorboard complete
+          dummy = embedder_model(X_train)
+          dummy2 = recovery_model(dummy)
+          dummy3 = supervisor_model(dummy)
+          
           # Apply Generator to Z and apply Supervisor on fake embedding
           E_hat = generator_model(Z)
           H_hat = supervisor_model(E_hat)
+          
+          # Dummy discriminator run to make graph in Tensorboard complete
+          dummy4 = discriminator_model([E_hat, dummy])
           
           # Compute real and fake probabilities using Discriminator model
           Y_fake_e = discriminator_model(E_hat)
@@ -394,4 +443,4 @@ def run(parameters, hparams, X_train, X_test):
                   ', e_loss_t0: ' + str(np.round(np.sqrt(e_loss_T0.result().numpy()),8)) + 
                   ', d_loss: ' + str(np.round(d_loss.result().numpy(),8))) 
             
-        print('Finish joint training')
+    print('Finish joint training')
