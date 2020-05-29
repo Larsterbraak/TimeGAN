@@ -35,12 +35,12 @@ X_train, X_test = create_dataset(name = 'EONIA',
 
 # 3. Train TimeGAN model
 hparams = [] # Used for hyperparameter tuning
-parameters = {'hidden_dim':4, 'num_layers':3, 'iterations':100,
+parameters = {'hidden_dim':4, 'num_layers':3, 'iterations':500,
               'batch_size': 25, 'module_name':'lstm', 'z_dim':5}
 
 from tgan import run
 run(parameters, hparams, X_train, X_test)
-
+          
 def run(parameters, hparams):
     
     # Network Parameters
@@ -50,8 +50,8 @@ def run(parameters, hparams):
     batch_size   = parameters['batch_size']  # Currently locked at 25
     module_name  = parameters['module_name'] # 'lstm' or 'GRU''
     z_dim        = parameters['z_dim']       # Currently locked at 5
-    lambda_val   = 0.1
-    eta          = 100
+    lambda_val   = 6
+    eta          = 75
     
     # Define the TensorBoard such that we can visualize the results
     log_dir = 'logs/' + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")

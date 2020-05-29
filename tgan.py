@@ -45,8 +45,8 @@ def run(parameters, hparams, X_train, X_test):
     batch_size   = parameters['batch_size']  # Currently locked at 25
     module_name  = parameters['module_name'] # 'lstm' or 'GRU''
     z_dim        = parameters['z_dim']       # Currently locked at 5
-    lambda_val   = 0.1
-    eta          = 100
+    lambda_val   = 6
+    eta          = 75
     
     # Define the TensorBoard such that we can visualize the results
     log_dir = 'logs/' + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -77,7 +77,7 @@ def run(parameters, hparams, X_train, X_test):
     loss_object_adversarial = tf.losses.BinaryCrossentropy(from_logits=True)
     # from_logits = True because the last dense layers is linear and
     # does not have an activation -- could be differently specified
-    optimizer = tf.keras.optimizers.Adam(0.01)
+    optimizer = tf.keras.optimizers.Adam(0.001)
     
     #tf.compat.v1.disable_eager_execution()
     
@@ -262,7 +262,7 @@ def run(parameters, hparams, X_train, X_test):
           G_loss_S_embedder = loss_object(H[:,1:,:], H_hat_supervise[:,1:,:])
           
           # Combine the two losses
-          E_loss = r_loss_train + lambda_val * G_loss_S_embedder
+          E_loss = r_loss_train + lambda_val * tf.sqrt(G_loss_S_embedder)
           
           # Compute the gradients with respect to the embedder-recovery model
           gradients_embedder=tape.gradient(E_loss,
@@ -332,7 +332,7 @@ def run(parameters, hparams, X_train, X_test):
         # This for loop is the discriminator training
         # Train discriminator if too bad or at initialization (0.0)
         if d_loss.result() > 0.15 or d_loss.result() == 0.0:
-            for kk in range(5): # Train d to optimum (Jensen-Shannon diverge)
+            for kk in range(7): # Train d to optimum (Jensen-Shannon diverge)
                 Z_mb = RandomGenerator(batch_size, [20, hidden_dim])
                 for x_train in X_train: # Train the discriminator for 5 epochs
                     train_step_discriminator(x_train, Z_mb)
@@ -375,7 +375,15 @@ def run(parameters, hparams, X_train, X_test):
                 add_hist(supervisor_model.trainable_variables,
                          epoch + already_done_epochs)
                 
-                print('step: '+ str(epoch+1) +  
+            if epoch % 50 == 0: # It takes around an hour to do 10 epochs
+                # Lastly save all models
+                embedder_model.save_weights('weights/embedder/epoch_' + str(epoch))
+                recovery_model.save_weights('weights/recovery/epoch_' + str(epoch))
+                supervisor_model.save_weights('weights/supervisor/epoch_' + str(epoch))
+                generator_model.save_weights('weights/generator/epoch_' + str(epoch))
+                discriminator_model.save_weights('weights/discriminator/epoch_' + str(epoch)) 
+        
+            print('step: '+ str(epoch+1) +  
                   ', g_loss_u_e: ' + str(np.round(g_loss_u_e.result().numpy(),8)) + 
                   ', g_loss_s: ' + str(np.round(np.sqrt(g_loss_s.result().numpy()),8)) + 
                   #', g_loss_v: ' + str(np.round(g_loss_v.result().numpy(),8)) + 
@@ -384,13 +392,5 @@ def run(parameters, hparams, X_train, X_test):
                   str(np.round(g_loss_s_embedder.result().numpy(),8)) +
                   ', e_loss_t0: ' + str(np.round(np.sqrt(e_loss_T0.result().numpy()),8)) + 
                   ', d_loss: ' + str(np.round(d_loss.result().numpy(),8))) 
-                
-            if epoch % 50 == 0:
-                # Lastly save all models
-                embedder_model.save_weights('weights/embedder/' + str(epoch))
-                recovery_model.save_weights('weights/recovery/' + str(epoch))
-                supervisor_model.save_weights('weights/supervisor/' + str(epoch))
-                generator_model.save_weights('weights/generator/' + str(epoch))
-                discriminator_model.save_weights('weights/discriminator/' + str(epoch)) 
             
-    print('Finish joint training')
+        print('Finish joint training')
