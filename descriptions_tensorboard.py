@@ -52,3 +52,13 @@ def descr_discriminator_loss_joint():
             discriminator network during the joint training phase. The loss \
             is a component used for the unsupervised GAN learning phase of \
             TimeGAN. (open-loop training)'
+            
+def descr_accuracy_joint():
+    return 'Discriminator accuracy of fakely generated samples and real data \
+            samples.'
+            
+def descr_joint_grad_generator():
+    return 'Gradients of the generator during the joint training.'
+            
+def descr_joint_grad_discriminator():
+    return 'Gradients of the discriminator during the joint trainning.'

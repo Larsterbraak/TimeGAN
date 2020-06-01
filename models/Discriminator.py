@@ -49,3 +49,14 @@ class Discriminator(Model):
         
         self.i = self.i + 1 # Log the number of calls to the discriminator model 
         return x
+    
+    def predict(self, x):
+        x = self.LSTM1(x) # Perform the normal training steps
+        x = self.LSTM2(x)
+        x = self.LSTM3(x)
+        x = self.Dense1(x)
+        
+        x = tf.math.sigmoid(x)        
+        return x
+        
+        
