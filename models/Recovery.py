@@ -30,7 +30,7 @@ class Recovery(Model):
     self.graph_has_been_written=False
     self.tensorboard_folder_path = tensorboard_folder_path
     
-  def call(self, x, **kwargs):
+  def call(self, x, **kwargs): # Implement training = False when testing
     x = self.LSTM1(x)
     x = self.LSTM2(x)
     x = self.LSTM3(x)

@@ -1,0 +1,2 @@
+model_checkpoint_path: "C:/Users/s157148/Documents/Github/TimeGAN/logs\\embeddings.ckpt-50"
+all_model_checkpoint_paths: "C:/Users/s157148/Documents/Github/TimeGAN/logs\\embeddings.ckpt-50"

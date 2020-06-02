@@ -26,7 +26,7 @@ class Embedder(Model):
                       dropout = 0.2,
                       recurrent_dropout = 0.2,
                       name = 'LSTM2')
-    self.LSTM3 = LSTM(units=4, # []
+    self.LSTM3 = LSTM(units=4, 
                       return_sequences=True,
                       kernel_initializer = 'he_uniform',
                       dropout = 0.2,
@@ -38,7 +38,7 @@ class Embedder(Model):
     self.graph_has_been_written=False
     self.tensorboard_folder_path = tensorboard_folder_path
 
-  def call(self, x, **kwargs):
+  def call(self, x, **kwargs): # Implement training = False when testing
     x = self.LSTM1(x)
     x = self.LSTM2(x)
     x = self.LSTM3(x)

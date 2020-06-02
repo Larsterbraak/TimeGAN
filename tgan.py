@@ -40,25 +40,31 @@ from descriptions_tensorboard import (descr_auto_loss, descr_auto_grads_embedder
                                       descr_auto_loss_joint_supervisor, descr_supervisor_loss_joint,
                                       descr_generator_loss_joint, descr_discriminator_loss_joint,
                                       descr_accuracy_joint, descr_joint_grad_discriminator,
-                                      descr_joint_grad_generator)
+                                      descr_joint_grad_generator, descr_images)
+
+from metrics import load_models, image_grid
 
 # Change to the needed working directory
 os.chdir('C://Users/s157148/Documents/Github/TimeGAN')
 
-def run(parameters, hparams, X_train, X_test):
+def run(parameters, hparams, X_train, X_test, load, load_epochs, load_log_dir):
     
     # Network Parameters
-    hidden_dim   = parameters['hidden_dim']  #
+    hidden_dim   = parameters['hidden_dim']
     num_layers   = parameters['num_layers']  # Still have to implement
     iterations   = parameters['iterations']  # Test run to check for overfitting
     batch_size   = parameters['batch_size']  # Currently locked at 25
-    module_name  = parameters['module_name'] # 'lstm' or 'GRU''
-    z_dim        = parameters['z_dim']       # Currently locked at 5
-    lambda_val   = 6
-    eta          = 75
+    module_name  = parameters['module_name'] # 'lstm' or 'GRU'' --> Still have to implement this
+    z_dim        = parameters['z_dim']       
+    lambda_val   = 1
+    eta          = 1
     
-    # Define the TensorBoard such that we can visualize the results
-    log_dir = 'logs/' + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    if load: # Write to already defined log directory?
+        log_dir = load_log_dir
+    else: # Or create new log directory?
+        # Define the TensorBoard such that we can visualize the results
+        log_dir = 'logs/' + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    
     summary_writer_train = tf.summary.create_file_writer(log_dir + '/train')
     summary_writer_test = tf.summary.create_file_writer(log_dir + '/test')
     summary_writer_bottom = tf.summary.create_file_writer(log_dir + '/bottom')
@@ -66,13 +72,19 @@ def run(parameters, hparams, X_train, X_test):
     summary_writer_real_data = tf.summary.create_file_writer(log_dir + '/real_data')
     summary_writer_fake_data = tf.summary.create_file_writer(log_dir + '/fake_data')
     
-    # Create an instance of all neural networks models (All LSTM)
-    embedder_model = Embedder('logs/embedder', hparams, dimensionality = 1)
-    recovery_model = Recovery('logs/recovery', hparams, dimensionality = 1) # If used for EONIA rate only
-    generator_model = Generator('logs/generator', hparams)
-    supervisor_model = Supervisor('logs/supervisor', hparams)
-    discriminator_model = Discriminator('logs/TimeGAN', hparams)
-    
+    if load:
+        embedder_model, recovery_model, supervisor_model, generator_model, discriminator_model = load_models(load_epochs)
+    else:
+        # Create an instance of all neural networks models (All LSTM)
+        embedder_model = Embedder('logs/embedder', hparams, dimensionality = 1)
+        recovery_model = Recovery('logs/recovery', hparams, dimensionality = 1) # If used for EONIA rate only
+        generator_model = Generator('logs/generator', hparams)
+        supervisor_model = Supervisor('logs/supervisor', hparams)
+        discriminator_model = Discriminator('logs/TimeGAN', hparams)
+        
+    # Because of a technicality
+    load_epochs = load_epochs + 50
+        
     r_loss_train = tf.keras.metrics.Mean(name='r_loss_train') # Step 1 metrics 
     r_loss_test = tf.keras.metrics.Mean(name='r_loss_test')
     
@@ -106,7 +118,7 @@ def run(parameters, hparams, X_train, X_test):
     # from_logits = True because the last dense layers is linear and
     # does not have an activation -- could be differently specified
     
-    optimizer = tf.keras.optimizers.Adam(0.001)
+    optimizer = tf.keras.optimizers.Adam(0.001) # Possibly increase the learning rate to stir up the GAN training
     
     # 1. Start with embedder training (Optimal LSTM auto encoder network)
     @tf.function(input_signature=[tf.TensorSpec(shape=(None,20,1), 
@@ -150,7 +162,7 @@ def run(parameters, hparams, X_train, X_test):
         r_loss_test(R_loss_test)    
     
     # Train the embedder for the input data
-    for epoch in range(iterations):
+    for epoch in range(load_epochs, load_epochs + iterations):
         r_loss_train.reset_states()
         r_loss_test.reset_states()
        
@@ -231,7 +243,7 @@ def run(parameters, hparams, X_train, X_test):
                                     H_hat_supervise_test[:, 1:, :])
         g_loss_s_test(G_loss_S_test)
     
-    for epoch in range(iterations):
+    for epoch in range(load_epochs, load_epochs + iterations):
         g_loss_s_train.reset_states()
         g_loss_s_test.reset_states()
         
@@ -272,49 +284,49 @@ def run(parameters, hparams, X_train, X_test):
                                   tf.TensorSpec(shape=(None,20,hidden_dim), dtype=tf.float64),
                                   tf.TensorSpec(shape=(), dtype = tf.bool)])
     def train_step_jointly_generator(X_train, Z, graphing=False):
-        with tf.GradientTape() as tape:
-            	
-          if graphing:
+        if graphing: # Only used for creating the graph
+            with tf.GradientTape() as tape:
               # We need these steps to make the graph in Tensorboard complete
               dummy = embedder_model(x_train)
               dummy1 = recovery_model(dummy)
               dummy2 = supervisor_model(dummy)
               dummy3 = discriminator_model(dummy)
+        else:
+            with tf.GradientTape() as tape:
+              # Apply Generator to Z and apply Supervisor on fake embedding
+              E_hat = generator_model(Z)
+              H_hat = supervisor_model(E_hat)
+                  
+              # Compute real and fake probabilities using Discriminator model
+              Y_fake_e = discriminator_model(E_hat)
               
-          # Apply Generator to Z and apply Supervisor on fake embedding
-          E_hat = generator_model(Z)
-          H_hat = supervisor_model(E_hat)
+              # 1. Generator - Adversarial loss - We want classification to be 1
+              G_loss_U_e = loss_object_adversarial(tf.ones_like(Y_fake_e), 
+                                                   Y_fake_e)
               
-          # Compute real and fake probabilities using Discriminator model
-          Y_fake_e = discriminator_model(E_hat)
-          
-          # 1. Generator - Adversarial loss - We want classification to be 1
-          G_loss_U_e = loss_object_adversarial(tf.ones_like(Y_fake_e), 
-                                               Y_fake_e)
-          
-          # 2. Generator - Supervised loss for fake embeddings
-          G_loss_S = loss_object(E_hat[:, 1:, :], H_hat[:, 1:, :])
-          
-          # Sum and multiply supervisor loss by eta for equal
-          # contribution to generator loss function
-          G_loss = G_loss_U_e + eta * tf.sqrt(G_loss_S)  
-          
-        # Compute the gradients w.r.t. generator and supervisor model
-        gradients_generator=tape.gradient(G_loss,
-                                          generator_model.trainable_variables)
+              # 2. Generator - Supervised loss for fake embeddings
+              G_loss_S = loss_object(E_hat[:, 1:, :], H_hat[:, 1:, :])
+              
+              # Sum and multiply supervisor loss by eta for equal
+              # contribution to generator loss function
+              G_loss = G_loss_U_e + eta * tf.sqrt(G_loss_S)  
+              
+            # Compute the gradients w.r.t. generator and supervisor model
+            gradients_generator=tape.gradient(G_loss,
+                                              generator_model.trainable_variables)
+            
+            # Apply the gradients to the generator model
+            optimizer.apply_gradients(zip(gradients_generator, 
+                                          generator_model.trainable_variables)) 
         
-        # Apply the gradients to the generator model
-        optimizer.apply_gradients(zip(gradients_generator, 
-                                      generator_model.trainable_variables)) 
-    
-        # Record the lower and upper layer gradients + the MSE for the generator
-        grad_generator_ll(gradients_generator[1])
-        grad_generator_ul(gradients_generator[9])
+            # Record the lower and upper layer gradients + the MSE for the generator
+            grad_generator_ll(gradients_generator[1])
+            grad_generator_ul(gradients_generator[9])
+            
+            # Compute individual components of the generator loss
+            g_loss_u_e(G_loss_U_e)
+            g_loss_s(G_loss_S) # Based on this we can set the eta value in G_loss_S
         
-        # Compute individual components of the generator loss
-        g_loss_u_e(G_loss_U_e)
-        g_loss_s(G_loss_S) # Based on this we can set the eta value in G_loss_S
-    
     @tf.function(input_signature=[tf.TensorSpec(shape=(None,20,1), dtype=tf.float64)])
     def train_step_jointly_embedder(X_train):
         with tf.GradientTape() as tape:
@@ -378,7 +390,7 @@ def run(parameters, hparams, X_train, X_test):
      
 
     def evaluate_accuracy(X_test, Z):
-        Y_real_test = (discriminator_model.predict(embedder_model(x_test)).numpy() > 0.5) * 1
+        Y_real_test = (discriminator_model.predict(embedder_model(X_test)).numpy() > 0.5) * 1
         Y_fake_test = (discriminator_model.predict(Z).numpy() > 0.5) * 1
         
         # Compute the loss 
@@ -394,7 +406,7 @@ def run(parameters, hparams, X_train, X_test):
         
     # Define the algorithm for training jointly
     print('Start joint training')
-    for epoch in range(iterations):
+    for epoch in range(load_epochs, iterations+load_epochs):
         g_loss_u_e.reset_states() # Reset the loss at every epoch
         g_loss_s.reset_states()
         
@@ -406,18 +418,20 @@ def run(parameters, hparams, X_train, X_test):
         # This for loop is GENERATOR TRAINING
         # Create 1 generator and embedding training iters.
         for kk in range(2): # Make a random generation
-            Z_minibatch = RandomGenerator(batch_size, [20, hidden_dim])
-            
             if epoch == 0 and kk == 1:
                 # Train the generator and embedder sequentially
                 for x_train in X_train:
-                    train_step_jointly_generator(x_train, Z_minibatch, tf.constant(True, dtype=tf.bool))
+                    Z_mb = RandomGenerator(batch_size, [20, hidden_dim])
+                    train_step_jointly_generator(x_train, Z_mb, tf.constant(True, dtype=tf.bool))
                     train_step_jointly_embedder(x_train)
             else:
                 # Train the generator and embedder sequentially
                 for x_train in X_train:
-                    train_step_jointly_generator(x_train, Z_minibatch, tf.constant(False, dtype=tf.bool))
+                    Z_mb = RandomGenerator(batch_size, [20, hidden_dim])
+                    train_step_jointly_generator(x_train, Z_mb, tf.constant(False, dtype=tf.bool))
                     train_step_jointly_embedder(x_train)
+                    train_step_jointly_embedder(x_train)
+        # Another round of training the embedder to provide a good latent space representation
                     
         # Possibly a new embedder training round to improve performance of Embedder
        
@@ -515,13 +529,28 @@ def run(parameters, hparams, X_train, X_test):
                 supervisor_model.save_weights('weights/supervisor/epoch_' + str(epoch))
                 generator_model.save_weights('weights/generator/epoch_' + str(epoch))
                 discriminator_model.save_weights('weights/discriminator/epoch_' + str(epoch)) 
+
+                # Convert the model into interpretable simulations and Nearest-Neighbour comparisons
+                figure = image_grid(1000, 20, 4, recovery_model, generator_model)
+                
+                figure.canvas.draw()
+                w, h = figure.canvas.get_width_height()
+                img = np.fromstring(figure.canvas.tostring_rgb(), dtype=np.uint8, sep='')
+                img = img.reshape((1, h, w, 3))   
+                
+                with summary_writer_train.as_default():
+                    tensor = tf.constant(img)
+                    tf.summary.image(str("Simulations & nearest neighbour after " + str(epoch) + " training iterations"),
+                                     tensor, step=epoch, 
+                                     description = str(descr_images()))
+
         
             print('step: '+ str(epoch+1) +  
                   ', g_loss_u_e: ' + str(np.round(g_loss_u_e.result().numpy(),8)) + 
-                  ', g_loss_s: ' + str(np.round(np.sqrt(g_loss_s.result().numpy()),8)) +                   
+                  ', g_loss_s: ' + str(np.round(g_loss_s.result().numpy(),8)) +                   
                   ', g_loss_s_embedder: ' + 
                   str(np.round(g_loss_s_embedder.result().numpy(),8)) +
-                  ', e_loss_t0: ' + str(np.round(np.sqrt(e_loss_T0.result().numpy()),8)) + 
+                  ', e_loss_t0: ' + str(np.round(e_loss_T0.result().numpy(),8)) + 
                   ', d_loss: ' + str(np.round(d_loss.result().numpy(),8))) 
             
     print('Finish joint training')

@@ -34,27 +34,28 @@ X_train, X_test = create_dataset(name = 'EONIA',
 
 # 3. Train TimeGAN model
 hparams = [] # Used for hyperparameter tuning
-parameters = {'hidden_dim':4, 'num_layers':3, 'iterations':100,
+parameters = {'hidden_dim':4, 'num_layers':3, 'iterations':5,
               'batch_size': 25, 'module_name':'lstm', 'z_dim':5}
 
 from tgan import run
-run(parameters, hparams, X_train, X_test)
+run(parameters, hparams, X_train, X_test, 
+    load=True, load_epochs=50, load_log_dir = 'logs/20200601-155201')
 
 # 4. Perform the Train on Synthetic, Test on Real
 from metrics import load_models, coverage_test_basel, ester_classifier
 
-e_model, r_model, g_model, d_model = load_models() # Load pre-trained models
+e_model, r_model, s_model, g_model, d_model = load_models(50) # Load pre-trained models
 
 # Perform the coverage test for a lower and upper Value-at-Risk
-classification_lower = coverage_test_basel(generator_model = g_model,
-                                           recovery_model = r_model,
-                                           lower=True, 
-                                           hidden_dim = 4)
+classification_lower, exceedances = coverage_test_basel(generator_model = g_model,
+                                                        recovery_model = r_model,
+                                                        lower=True, 
+                                                        hidden_dim = 4)
 
-classification_upper = coverage_test_basel(generator_model = g_model,
-                                           recovery_model = r_model,
-                                           lower=False, 
-                                           hidden_dim = 4)
+classification_upper, exceedances = coverage_test_basel(generator_model = g_model,
+                                                        recovery_model = r_model,
+                                                        lower=False, 
+                                                        hidden_dim = 4)
 
 # Calculate prob of ESTER for TimeGAN calibrated on EONIA 
 probs_ester = ester_classifier(embedder_model = e_model,
@@ -88,36 +89,29 @@ probs_ester = ester_classifier(embedder_model = e_model,
 from tensorboard.plugins.hparams import api as hp
 
 HP_LR = hp.HParam('learning_rate', hp.Discrete([0.0001, 0.001, 0.01]))
-HP_DROPOUT = hp.HParam('dropout', hp.RealInterval(0.1, 0.2))
+#HP_DROPOUT = hp.HParam('dropout', hp.RealInterval(0.1, 0.2))
 
-METRIC_D_LOSS = 'd_loss'
-METRIC_G_LOSS_U = 'g_loss_u'
-METRIC_G_LOSS_V = 'g_loss_v'
-METRIC_G_LOSS_S = 'g_loss_s'
-METRIC_E_LOSS = 'e_loss'
+METRIC_EXCEEDANCES_UPPER = 'exceedances_upper'
+METRIC_EXCEEDANCES_LOWER = 'exceedances_lower'
+METRIC_ACCURACY_FAKE = 'accuracy_fake'
+METRIC_ACCURACY_REAL = 'accuracy_real'
 
 with tf.summary.create_file_writer('logs/hparam_tuning').as_default():
-  hp.hparams_config(
-    hparams=[HP_LR, HP_DROPOUT],
-    metrics=[hp.Metric(METRIC_D_LOSS, display_name='d_loss'),
-             hp.Metric(METRIC_G_LOSS_U, display_name='g_loss_u'),
-             hp.Metric(METRIC_G_LOSS_V, display_name='g_loss_v'),
-             hp.Metric(METRIC_G_LOSS_S, display_name='g_loss_s'),
-             hp.Metric(METRIC_E_LOSS, display_name='e_loss')],
-  )
+    hp.hparams_config(
+      hparams=[HP_LR],
+      metrics=[hp.Metric(METRIC_EXCEEDANCES_UPPER, display_name='exceedances_upper'),
+               hp.Metric(METRIC_EXCEEDANCES_LOWER, display_name='exceedances_lower'),
+               hp.Metric(METRIC_ACCURACY_FAKE, display_name='accuracy_fake'),
+               hp.Metric(METRIC_ACCURACY_REAL, display_name='accuracy_real')]
+    )
 
-for lr in HP_LR.domain.values:
-    for dropout_rate in (HP_DROPOUT.domain.min_value, HP_DROPOUT.domain.max_value):
+    for lr in HP_LR.domain.values:
         hparams = {
-            HP_LR: lr,
-            HP_DROPOUT: dropout_rate,            
+            HP_LR: lr
             }
         print({h.name: hparams[h] for h in hparams})
         hp.hparams(hparams) # Record values used in trial
-        run(hparams = hparams, iterations = 2) # run model for 2 epochs
-       
-# Remove backslash continuation should solve the problem
-# of tensorflow:AutoGraph warning message
+        #run(parameters, hparams, X_train, X_test, load = False) # run model for 2 epochs
 
 # =============================================================================
 # Use the projector mode in Tensorboard for t-SNE and PCA visualizations
@@ -137,20 +131,31 @@ def save_labels_tsv(labels, filepath, log_dir):
             f.write('{}\n'.format(label))
 
 # Get the real and 'fake' / generated tensors
-real = tf.reshape(x_train, shape=(500,5))
-fake = tf.reshape(recovery_model(generator_model(RandomGenerator(25,
+real = []
+counter = 0
+length = 0
+dimensionality = 0
+for _x in X_train:
+    counter += _x.shape[0]
+    length = _x.shape[1]
+    dimensionality = _x.shape[2] 
+    real = np.append(real, _x)
+        
+real = np.reshape(real, newshape=(counter, length, dimensionality))
+    
+fake = tf.reshape(recovery_model_model(generator_model(RandomGenerator(counter,
                                                                  [20, 4]))),
-                  shape =(500, 5))
+                  shape =(counter, length, dimensionality))
 
 # Concatenate along the first dimension to ge a new tensor
 x = tf.concat([real, fake], axis = 0)
-y = np.append(['real' for x in range(500)], ['fake' for x in range(500)])
+y = np.append(['real' for x in range(counter)], ['fake' for x in range(counter)])
 
-LOG_DIR ='C:/Users/s157148/Documents/Research/logs'  # Tensorboard log dir
+LOG_DIR ='C:/Users/s157148/Documents/Github/TimeGAN/logs'  # Tensorboard log dir
 META_DATA_FNAME = 'meta.tsv'  # Labels will be stored here
 EMBEDDINGS_TENSOR_NAME = 'embeddings'
 EMBEDDINGS_FPATH = os.path.join(LOG_DIR, EMBEDDINGS_TENSOR_NAME + '.ckpt')
-STEP = 0
+STEP = 50
 
 register_embedding(EMBEDDINGS_TENSOR_NAME, META_DATA_FNAME, LOG_DIR)
 save_labels_tsv(y, META_DATA_FNAME, LOG_DIR)
@@ -158,4 +163,6 @@ save_labels_tsv(y, META_DATA_FNAME, LOG_DIR)
 # Size of files created on disk: 80.5kB
 tensor_embeddings = tf.Variable(x, name=EMBEDDINGS_TENSOR_NAME)
 saver = tf.compat.v1.train.Saver([tensor_embeddings])  # Must pass list or dict
+tf.train.Saver()
+
 saver.save(sess=None, global_step=STEP, save_path=EMBEDDINGS_FPATH)

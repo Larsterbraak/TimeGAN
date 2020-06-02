@@ -21,6 +21,11 @@ Outputs
 - Preprocessed time series of European short rates
 """
 
+import os
+
+# Change to the needed working directory
+os.chdir('C://Users/s157148/Documents/Github/TimeGAN')
+
 # Necessary packages
 import pandas as pd
 import numpy as np

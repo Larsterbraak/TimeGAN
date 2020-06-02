@@ -62,3 +62,11 @@ def descr_joint_grad_generator():
             
 def descr_joint_grad_discriminator():
     return 'Gradients of the discriminator during the joint trainning.'
+
+def descr_images():
+    return 'The upper images display 10 random simulation from the generator \
+            in the latent embedding space. The recovery model then reverts \
+            the latent space back to normal space. The lower images show a \
+            random draw from above simulations and its nearest neighbour in \
+            the EONIA dataset. For training less than 100 epochs, mode \
+            collapse seems present.' 

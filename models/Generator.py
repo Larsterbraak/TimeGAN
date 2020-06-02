@@ -30,19 +30,10 @@ class Generator(Model):
         self.graph_has_been_written=False
         self.tensorboard_folder_path = tensorboard_folder_path
 
-    def call(self, x, **kwargs):
+    def call(self, x, **kwargs): # Implement training = False when testing
         x = self.LSTM1(x)
         x = self.LSTM2(x)
         x = self.LSTM3(x)
         x = self.Dense1(x)
-        
-        # # Print the graph in TensorBoard
-        # if not self.graph_has_been_written:
-        #     model_graph = x.graph
-        #     writer = tf.compat.v1.summary.FileWriter(logdir=self.tensorboard_folder_path,
-        #                                              graph=model_graph)
-        #     writer.flush()
-        #     self.graph_has_been_written = True
-        #     print("Wrote eager graph to:", self.tensorboard_folder_path)
        
         return x

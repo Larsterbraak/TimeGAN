@@ -32,7 +32,7 @@ class Discriminator(Model):
         self.i = 0
         self.tensorboard_folder_path = tensorboard_folder_path
         
-    def call(self, x):
+    def call(self, x, **kwargs): # Implement training = False when testing 
         x = self.LSTM1(x)
         x = self.LSTM2(x)
         x = self.LSTM3(x)
