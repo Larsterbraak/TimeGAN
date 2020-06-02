@@ -17,7 +17,6 @@ Outputs
 import numpy as np
 import os
 import tensorflow as tf
-from tensorboard.plugins import projector
 
 os.chdir('C://Users/s157148/Documents/Github/TimeGAN')
 
@@ -57,9 +56,24 @@ classification_upper, exceedances = coverage_test_basel(generator_model = g_mode
                                                         lower=False, 
                                                         hidden_dim = 4)
 
+# =============================================================================
+# Provide a plot of the realness of ESTER + 8.5 bps 
+# =============================================================================
+
 # Calculate prob of ESTER for TimeGAN calibrated on EONIA 
-probs_ester = ester_classifier(embedder_model = e_model,
-                               discriminator_model = d_model)    
+probs_ester = ester_classifier(load_epochs=50)    
+
+# =============================================================================
+# Provide correlation matrix for realness and stylized facts of short rates
+# =============================================================================
+
+# Still not done
+
+# =============================================================================
+# Provide a way to adjust the latent space to account for the difference in ESTER and EONIA
+# =============================================================================
+
+# Still not done
 
 # The probabilities are some where aroud 0.5 so it can not tell whether
 # or not it is different from EONIA
@@ -89,7 +103,6 @@ probs_ester = ester_classifier(embedder_model = e_model,
 from tensorboard.plugins.hparams import api as hp
 
 HP_LR = hp.HParam('learning_rate', hp.Discrete([0.0001, 0.001, 0.01]))
-#HP_DROPOUT = hp.HParam('dropout', hp.RealInterval(0.1, 0.2))
 
 METRIC_EXCEEDANCES_UPPER = 'exceedances_upper'
 METRIC_EXCEEDANCES_LOWER = 'exceedances_lower'
@@ -111,11 +124,12 @@ with tf.summary.create_file_writer('logs/hparam_tuning').as_default():
             }
         print({h.name: hparams[h] for h in hparams})
         hp.hparams(hparams) # Record values used in trial
-        #run(parameters, hparams, X_train, X_test, load = False) # run model for 2 epochs
+        run(parameters, hparams, X_train, X_test, load = False) # run model for 2 epochs
 
 # =============================================================================
 # Use the projector mode in Tensorboard for t-SNE and PCA visualizations
 # =============================================================================
+from tensorboard.plugins import projector
 
 # Some initial code which is the same for all the variants
 def register_embedding(embedding_tensor_name, meta_data_fname, log_dir):
@@ -140,29 +154,28 @@ for _x in X_train:
     length = _x.shape[1]
     dimensionality = _x.shape[2] 
     real = np.append(real, _x)
-        
-real = np.reshape(real, newshape=(counter, length, dimensionality))
-    
-fake = tf.reshape(recovery_model_model(generator_model(RandomGenerator(counter,
-                                                                 [20, 4]))),
-                  shape =(counter, length, dimensionality))
+
+from metrics import load_models
+from training import RandomGenerator
+
+e_model, r_model, s_model, g_model, d_model = load_models(50) # Load pre-trained models
+
+real = tf.cast(np.reshape(real, newshape=(counter, length, dimensionality)), dtype = tf.float64)    
+fake = tf.reshape(r_model(g_model(RandomGenerator(counter, [20, 4]))), (counter, length, dimensionality))
 
 # Concatenate along the first dimension to ge a new tensor
 x = tf.concat([real, fake], axis = 0)
 y = np.append(['real' for x in range(counter)], ['fake' for x in range(counter)])
 
-LOG_DIR ='C:/Users/s157148/Documents/Github/TimeGAN/logs'  # Tensorboard log dir
+LOG_DIR ='logs'  # Tensorboard log dir
 META_DATA_FNAME = 'meta.tsv'  # Labels will be stored here
 EMBEDDINGS_TENSOR_NAME = 'embeddings'
-EMBEDDINGS_FPATH = os.path.join(LOG_DIR, EMBEDDINGS_TENSOR_NAME + '.ckpt')
-STEP = 50
+EMBEDDINGS_FPATH = os.path.join(LOG_DIR, EMBEDDINGS_TENSOR_NAME + 'model.ckpt')
+STEP = 0
 
 register_embedding(EMBEDDINGS_TENSOR_NAME, META_DATA_FNAME, LOG_DIR)
 save_labels_tsv(y, META_DATA_FNAME, LOG_DIR)
 
-# Size of files created on disk: 80.5kB
 tensor_embeddings = tf.Variable(x, name=EMBEDDINGS_TENSOR_NAME)
 saver = tf.compat.v1.train.Saver([tensor_embeddings])  # Must pass list or dict
-tf.train.Saver()
-
 saver.save(sess=None, global_step=STEP, save_path=EMBEDDINGS_FPATH)

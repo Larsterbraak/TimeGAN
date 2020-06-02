@@ -34,7 +34,7 @@ import tensorflow as tf
 
 def create_dataset(name='pre-ESTER', normalization='min-max',
                    seq_length=20, training=True, multidimensional=True,
-                   ester_probs=False):
+                   ester_probs=False, include_spread=False):
     
     if name == 'EONIA':
         df = pd.read_csv("data/EONIA.csv", sep=";")
@@ -52,6 +52,8 @@ def create_dataset(name='pre-ESTER', normalization='min-max',
         df = pd.read_csv("data/ESTER.csv", sep=";")
         df = df.iloc[:, 1:] # Remove the Date variable from the dataset
         df = df.iloc[::-1]# Make dataset chronological
+        if include_spread:
+            df = df + 0.0085
         # Make daily differencing
         df.iloc[1:,[1,2,4]] = np.diff(df[['R25', 'R75', 'WT']], axis =0)
         df = df.iloc[1:]
@@ -76,10 +78,9 @@ def create_dataset(name='pre-ESTER', normalization='min-max',
         _df = df[i : i + seq_length]
         dataX.append(_df)
     
-    if not ester_probs: 
-        # Create random permutations to make it more i.i.d.
-        idx = np.random.permutation(len(dataX))
-        
+    # Create random permutations to make it more i.i.d.
+    idx = np.random.permutation(len(dataX))
+    if not ester_probs:         
         outputX = []
         for i in range(len(dataX)):
             outputX.append(dataX[idx[i]])
@@ -104,7 +105,7 @@ def create_dataset(name='pre-ESTER', normalization='min-max',
         X_test = tf.data.Dataset.from_tensor_slices(tf.cast(X_test, tf.float64)).batch(50)
         return X_train, X_test
     else:
-        return outputX
+        return idx, outputX
 
 def rescale(df, N, seq_length, X_hat_scaled):
     if df == 'EONIA':
