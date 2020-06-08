@@ -309,7 +309,7 @@ def run(parameters, hparams, X_train, X_test, load, load_epochs, load_log_dir):
               
               # Sum and multiply supervisor loss by eta for equal
               # contribution to generator loss function
-              G_loss = G_loss_U_e + eta * tf.sqrt(G_loss_S)  
+              G_loss = G_loss_U_e + eta * G_loss_S  
               
             # Compute the gradients w.r.t. generator and supervisor model
             gradients_generator=tape.gradient(G_loss,

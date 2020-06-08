@@ -3,7 +3,7 @@ MSc Thesis Quantitative Finance
 Title: Interest rate risk due to EONIA-ESTER transition
 Author: Lars ter Braak (larsterbraak@gmail.com)
 
-Last updated: May 27th 2020
+Last updated: June 4th 2020
 Code Author: Lars ter Braak (larsterbraak@gmail.com)
 
 -----------------------------
@@ -103,6 +103,8 @@ probs_ester = ester_classifier(load_epochs=50)
 from tensorboard.plugins.hparams import api as hp
 
 HP_LR = hp.HParam('learning_rate', hp.Discrete([0.0001, 0.001, 0.01]))
+# Include lambda and eta as hyperparameters
+
 
 METRIC_EXCEEDANCES_UPPER = 'exceedances_upper'
 METRIC_EXCEEDANCES_LOWER = 'exceedances_lower'
