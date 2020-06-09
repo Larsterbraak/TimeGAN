@@ -33,7 +33,7 @@ X_train, X_test = create_dataset(name = 'EONIA',
 
 # 3. Train TimeGAN model
 hparams = [] # Used for hyperparameter tuning
-parameters = {'hidden_dim':4, 'num_layers':3, 'iterations':5,
+parameters = {'hidden_dim':4, 'num_layers':3, 'iterations':7,
               'batch_size': 50, 'module_name':'lstm', 'z_dim':5}
 
 from tgan import run
@@ -103,8 +103,11 @@ probs_ester = ester_classifier(load_epochs=50)
 from tensorboard.plugins.hparams import api as hp
 
 HP_LR = hp.HParam('learning_rate', hp.Discrete([0.0001, 0.001, 0.01]))
-# Include lambda and eta as hyperparameters
-
+HP_Wasserstein = hp.HParam('Wasserstein_loss', hp.Discrete([True, False]))
+HP_Positive_label_smoothing = hp.HParam('Positive_label_smoothing', hp.Discrete([True, False]))
+HP_Feature_matching = hp.HParam('Feature_matching', hp.Discrete([True, False]))
+HP_T = hp.HParam('T', hp.Discrete([5, 20, 30]))
+# Also look for the impact of eta, lambda and kappa on the the performance
 
 METRIC_EXCEEDANCES_UPPER = 'exceedances_upper'
 METRIC_EXCEEDANCES_LOWER = 'exceedances_lower'
@@ -113,7 +116,7 @@ METRIC_ACCURACY_REAL = 'accuracy_real'
 
 with tf.summary.create_file_writer('logs/hparam_tuning').as_default():
     hp.hparams_config(
-      hparams=[HP_LR],
+      hparams=[HP_LR, HP_Wasserstein, HP_Positive_label_smoothing, HP_Feature_matching, HP_T],
       metrics=[hp.Metric(METRIC_EXCEEDANCES_UPPER, display_name='exceedances_upper'),
                hp.Metric(METRIC_EXCEEDANCES_LOWER, display_name='exceedances_lower'),
                hp.Metric(METRIC_ACCURACY_FAKE, display_name='accuracy_fake'),
@@ -121,10 +124,18 @@ with tf.summary.create_file_writer('logs/hparam_tuning').as_default():
     )
 
     for lr in HP_LR.domain.values:
-        hparams = {
-            HP_LR: lr
-            }
-        print({h.name: hparams[h] for h in hparams})
+        for ws in HP_Wasserstein.domain.values:
+            for pls in HP_Positive_label_smoothing.domain.values:
+                for fm in HP_Feature_matching.domain.values:
+                    for t in HP_T.domain.values:
+                        hparams = {
+                            HP_LR: lr,
+                            HP_Wasserstein: ws,
+                            HP_Positive_label_smoothing: pls,
+                            HP_Feature_matching: fm,
+                            HP_T: t
+                            }
+                        print({h.name: hparams[h] for h in hparams})
         hp.hparams(hparams) # Record values used in trial
         run(parameters, hparams, X_train, X_test, load = False) # run model for 2 epochs
 

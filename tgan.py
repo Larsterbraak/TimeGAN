@@ -48,23 +48,8 @@ from descriptions_tensorboard import (descr_auto_loss, descr_auto_grads_embedder
 
 from metrics import load_models, image_grid
 
-# Special function
+# Special function for Wasserstein distance
 from tensorflow.keras import backend as K
-
-def wasserstein_loss(y_true, y_pred):
-    return K.mean(y_true * y_pred, axis=-1)
-
-def gradient_penalty(self, f, real, fake):
-        alpha = np.random.uniform([batch_size, 1, 1, 1], 0., 1.)
-        diff = fake - real
-        inter = real + (alpha * diff)
-        with tf.GradientTape() as t:
-            t.watch(inter)
-            pred = f(inter)
-        grad = t.gradient(pred, [inter])[0]
-        slopes = tf.sqrt(tf.reduce_sum(tf.square(grad), axis=[1, 2, 3]))
-        gp = tf.reduce_mean((slopes - 1.)**2)
-        return gp
 
 def run(parameters, hparams, X_train, X_test, 
         load=False, load_epochs=0, load_log_dir=""):
@@ -297,13 +282,13 @@ def run(parameters, hparams, X_train, X_test,
             test_step_supervised(x_test)
             
         with summary_writer_train.as_default():
-            tf.summary.scalar('2. Pre-training supervisor/1. loss', 
+            tf.summary.scalar('2. Pre-training supervisor/1. Supervised loss', 
                               g_loss_s_train.result(), step=epoch)
             if epoch % 10 == 0: # Only log trainable variables per 10 epochs
                 add_hist(supervisor_model.trainable_variables, epoch)
         
         with summary_writer_test.as_default():
-            tf.summary.scalar('2. Pre-training supervisor/1. loss',
+            tf.summary.scalar('2. Pre-training supervisor/1. Supervised loss',
                               g_loss_s_test.result(), step=epoch,
                               description = str(descr_supervisor_loss()))
             
@@ -316,8 +301,9 @@ def run(parameters, hparams, X_train, X_test,
     # 3. Continue with joint training
     @tf.function(input_signature=[tf.TensorSpec(shape=(None,20,1), dtype=tf.float64),
                                   tf.TensorSpec(shape=(None,20,hidden_dim), dtype=tf.float64),
+                                  tf.TensorSpec(shape=(), dtype = tf.bool),
                                   tf.TensorSpec(shape=(), dtype = tf.bool)])
-    def train_step_jointly_generator(X_train, Z, graphing=False):
+    def train_step_jointly_generator(X_train, Z, graphing=False, wasserstein=False):
         if graphing: # Only used for creating the graph
             with tf.GradientTape() as tape:
               # We need these steps to make the graph in Tensorboard complete
@@ -339,28 +325,31 @@ def run(parameters, hparams, X_train, X_test,
               # Compute real and fake probabilities using Discriminator model
               Y_fake_e = discriminator_model(E_hat)
               
-              # 1. Generator - Adversarial loss - We want to trick Discriminator to give classification of 1
-              G_loss_U_e = loss_object_adversarial(tf.ones_like(Y_fake_e), 
-                                                   Y_fake_e)
-              
+              if wasserstein:
+                  G_loss_U_e = wasserstein_loss(-tf.ones_like(Y_fake_e), Y_fake_e)    
+              else:
+                  # 1. Generator - Adversarial loss - We want to trick Discriminator to give classification of 1
+                  G_loss_U_e = loss_object_adversarial(tf.ones_like(Y_fake_e), 
+                                                       Y_fake_e)
+                  
               # 2. Generator - Supervised loss for fake embeddings
               G_loss_S = loss_object(E_hat[:, 1:, :], H_hat[:, 1:, :])
-              
-              if dummy1.shape[0] != recovery_hat.shape[0]:
-                  recovery_hat = recovery_hat[0:dummy1.shape[0], :, :]
-              
-              # # 3. Generator - Feature matching skewness and kurtosis
-              # G_loss_f1 = tf.math.pow(tf.reduce_mean(scipy.stats.skew(x_tilde, axis = 1)) -
-              #             tf.reduce_mean(scipy.stats.skew(recovery_hat, axis = 1)), 2)
-              
-              # # 3. Generator - Feature matching skewness and kurtosis
-              # G_loss_f2 = tf.math.pow(tf.reduce_mean(scipy.stats.kurtosis(x_tilde, axis = 1)) -
-              #             tf.reduce_mean(scipy.stats.kurtosis(recovery_hat, axis = 1)), 2)
-              
+                  
+              #if dummy1.shape[0] != recovery_hat.shape[0]:
+              #    recovery_hat = recovery_hat[0:dummy1.shape[0], :, :]
+                      
+                # # 3. Generator - Feature matching skewness and kurtosis
+                # G_loss_f1 = tf.math.pow(tf.reduce_mean(scipy.stats.skew(x_tilde, axis = 1)) -
+                #             tf.reduce_mean(scipy.stats.skew(recovery_hat, axis = 1)), 2)
+                
+                # # 3. Generator - Feature matching skewness and kurtosis
+                # G_loss_f2 = tf.math.pow(tf.reduce_mean(scipy.stats.kurtosis(x_tilde, axis = 1)) -
+                #             tf.reduce_mean(scipy.stats.kurtosis(recovery_hat, axis = 1)), 2)
+                
               # Sum and multiply supervisor loss by eta for equal
               # contribution to generator loss function
               G_loss = G_loss_U_e + eta * G_loss_S #+ kappa * tf.add(G_loss_f1 , G_loss_f2)
-              
+                      
             # Compute the gradients w.r.t. generator and supervisor model
             gradients_generator=tape.gradient(G_loss,
                                               generator_model.trainable_variables)
@@ -427,11 +416,26 @@ def run(parameters, hparams, X_train, X_test,
       G_loss_S_embedder_test = loss_object(H[:,1:,:], H_hat_supervise[:,1:,:])
       e_loss_T0_test(E_loss_T0_test)
       g_loss_s_embedder_test(G_loss_S_embedder_test)
+    
       
+    def gradient_penalty(real, fake):
+        alpha = tf.random.uniform(shape=[batch_size, 20, 1], minval=0., maxval=1.)
+        differences = fake - real
+        interpolates = real + (alpha * differences)
+        gradients = tf.gradients(discriminator_model(interpolates, is_reuse=True), [interpolates])[0]
+        slopes = tf.sqrt(tf.reduce_sum(tf.square(gradients), reduction_indices=[1, 2, 3]))
+        gradient_penalty = tf.reduce_mean((slopes-1.)**2)
+
+        return gradient_penalty
+    
+    def wasserstein_loss(y_true, y_pred):
+        return K.mean(y_true * y_pred, axis=-1)
+    
     @tf.function(input_signature=[tf.TensorSpec(shape=(None,20,1), dtype=tf.float64),
                                   tf.TensorSpec(shape=(None,20, hidden_dim), dtype=tf.float64),
-                                  tf.TensorSpec(shape=(), dtype = tf.float64)])
-    def train_step_discriminator(X_train, Z, smoothing_factor=1):
+                                  tf.TensorSpec(shape=(), dtype = tf.float64),
+                                  tf.TensorSpec(shape=(), dtype = tf.bool)])
+    def train_step_discriminator(X_train, Z, smoothing_factor=1, wasserstein = False):
         with tf.GradientTape() as tape:
             # Embeddings for real data and classifications from discriminator
             H = embedder_model(X_train)
@@ -441,13 +445,21 @@ def run(parameters, hparams, X_train, X_test,
             E_hat = generator_model(Z)
             Y_fake_e = discriminator_model(E_hat)
             
-            # Loss for the discriminator
-            D_loss_real = loss_object_adversarial(tf.ones_like(Y_real) * smoothing_factor, Y_real)
-            D_loss_fake_e = loss_object_adversarial(tf.zeros_like(Y_fake_e), 
-                                                    Y_fake_e)
-            D_loss = D_loss_real + D_loss_fake_e
-            D_loss = -D_loss
-            
+            if wasserstein: # Use the Wasserstein Gradient penalty
+                D_loss_real = wasserstein_loss(tf.ones_like(Y_real), Y_real)
+                D_loss_fake_e = wasserstein_loss(-tf.ones_like(Y_real), Y_fake_e)
+                GP = 10 * gradient_penalty(Y_real, Y_fake_e)
+                D_loss = D_loss_real - D_loss_fake_e + GP
+            else: # Just normal Jensen-Shannon divergence    
+                
+                
+                # Loss for the discriminator
+                D_loss_real = loss_object_adversarial(tf.ones_like(Y_real) * smoothing_factor, Y_real)
+                D_loss_fake_e = loss_object_adversarial(tf.zeros_like(Y_fake_e), 
+                                                        Y_fake_e)
+                D_loss = D_loss_real + D_loss_fake_e
+                D_loss = -D_loss
+                
         # Compute the gradients with respect to the discriminator model
         grad_d=tape.gradient(D_loss,
                              discriminator_model.trainable_variables)
