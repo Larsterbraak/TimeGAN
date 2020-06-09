@@ -34,11 +34,11 @@ X_train, X_test = create_dataset(name = 'EONIA',
 # 3. Train TimeGAN model
 hparams = [] # Used for hyperparameter tuning
 parameters = {'hidden_dim':4, 'num_layers':3, 'iterations':5,
-              'batch_size': 25, 'module_name':'lstm', 'z_dim':5}
+              'batch_size': 50, 'module_name':'lstm', 'z_dim':5}
 
 from tgan import run
 run(parameters, hparams, X_train, X_test, 
-    load=True, load_epochs=50, load_log_dir = 'logs/20200601-155201')
+    load=False, load_epochs=0, load_log_dir = '')
 
 # 4. Perform the Train on Synthetic, Test on Real
 from metrics import load_models, coverage_test_basel, ester_classifier

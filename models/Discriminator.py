@@ -39,7 +39,7 @@ class Discriminator(Model):
         x = self.Dense1(x)
         
         # Print the graph in TensorBoard
-        if not self.graph_has_been_written and self.i != 0:
+        if not self.graph_has_been_written and self.i == 0:
             model_graph = x.graph
             writer = tf.compat.v1.summary.FileWriter(logdir=self.tensorboard_folder_path,
                                                      graph=model_graph)

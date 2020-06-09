@@ -82,7 +82,7 @@ def create_plot_nn(equivalent, simulation, T, ax):
 
 def image_grid(N, T, hidden_dim, recovery_model, generator_model):
     # Get the EONIA T-day real values
-    EONIA = create_dataset(name='EONIA', seq_length = 20, training=False)
+    _, EONIA = create_dataset(name='EONIA', seq_length = 20, training=False)
     EONIA = np.reshape(EONIA, (EONIA.shape[0], EONIA.shape[1])) # These T-day intervals are shuffled
         
     figure = plt.figure(figsize=(15,15))
