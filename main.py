@@ -33,7 +33,7 @@ X_train, X_test = create_dataset(name = 'EONIA',
 
 # 3. Train TimeGAN model
 hparams = [] # Used for hyperparameter tuning
-parameters = {'hidden_dim':4, 'num_layers':3, 'iterations':7,
+parameters = {'hidden_dim':4, 'num_layers':3, 'iterations':300,
               'batch_size': 50, 'module_name':'lstm', 'z_dim':5}
 
 from tgan import run
@@ -136,8 +136,9 @@ with tf.summary.create_file_writer('logs/hparam_tuning').as_default():
                             HP_T: t
                             }
                         print({h.name: hparams[h] for h in hparams})
-        hp.hparams(hparams) # Record values used in trial
-        run(parameters, hparams, X_train, X_test, load = False) # run model for 2 epochs
+                        hp.hparams(hparams) # Record values used in trial
+                        
+                        run(parameters, hparams, X_train, X_test, load = False) # run model for 2 epochs
 
 # =============================================================================
 # Use the projector mode in Tensorboard for t-SNE and PCA visualizations
