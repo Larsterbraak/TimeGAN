@@ -33,7 +33,7 @@ X_train, X_test = create_dataset(name = 'EONIA',
 
 # 3. Train TimeGAN model
 hparams = [] # Used for hyperparameter tuning
-parameters = {'hidden_dim':4, 'num_layers':3, 'iterations':300,
+parameters = {'hidden_dim':4, 'num_layers':3, 'iterations':105,
               'batch_size': 50, 'module_name':'lstm', 'z_dim':5}
 
 from tgan import run
