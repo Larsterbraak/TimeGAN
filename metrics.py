@@ -35,6 +35,7 @@ from scipy.stats import binom
 from training import RandomGenerator
 import matplotlib.pyplot as plt
 import pandas as pd
+from scipy import stats
 
 def load_models(epoch):        
     from models.Discriminator import Discriminator
@@ -116,7 +117,7 @@ def coverage_test_basel(generator_model, recovery_model,
                         lower=True, hidden_dim = 4):
     
     # Get the EONIA T-day real values
-    EONIA = create_dataset(name='EONIA', seq_length = 20, training=False)
+    _, EONIA = create_dataset(name='EONIA', seq_length = 20, training=False)
     EONIA = np.reshape(EONIA, (EONIA.shape[0], EONIA.shape[1])) # These T-day intervals are shuffled
         
     # Specify Nr. simulations and T
@@ -145,7 +146,64 @@ def coverage_test_basel(generator_model, recovery_model,
     elif binom.cdf(4, 250, 0.01) <= prob <= binom.cdf(9, 250, 0.01):
         return 'Yellow', exceedances
     else:
-        return 'Red', exceedances 
+        return 'Red', exceedances   
+
+def calibrate_vasicek():
+    # Get the EONIA T-day real values
+    df = pd.read_csv("data/EONIA.csv", sep=";")
+    df = df.iloc[:, 2:] # Remove the Date variable from the dataset
+    df = df.iloc[::-1]
+    df = np.ravel(df.values)
+
+    # Only use the last 250 trading days
+    df = df[-500:-250]
+    short_rate = df
+
+    short_rate += 5 # In order to have stable estimates
+    slope, intercept, _, _, _ = stats.linregress(short_rate[:-1], short_rate[1:])
+    errors = df[1:] - df[:-1]*slope + intercept 
+    alpha = -np.log(intercept)
+    beta = (slope / (1 - intercept-5))
+    sigma = np.std(errors) * np.sqrt((-2 * np.log(intercept)) / (1 - intercept**2))
+    
+    return alpha, beta, sigma
+
+def vasicek(r0, alpha, beta, sigma, N=20, driftless=True):
+    if driftless:
+        e_v = r0*np.exp(-alpha*N) + beta*(1-np.exp(-alpha*N))
+    else:
+        e_v = r0
+    v_v = (sigma**2 / 2*alpha) * (1-np.exp(-2*alpha*N))
+    
+    lower_bound = e_v - 3 * np.sqrt(v_v)
+    upper_bound = e_v + 3 * np.sqrt(v_v)
+    return lower_bound, upper_bound
+
+def coverage_test_vasicek():
+    # Get the EONIA T-day real values
+    df = pd.read_csv("data/EONIA.csv", sep=";")
+    df = df.iloc[:, 2:] # Remove the Date variable from the dataset
+    df = df.iloc[::-1]
+    df = np.ravel(df.values)
+    # Only use the last 250 trading days
+    df = df[-250:]
+    
+    data = np.zeros((230,2))
+    for i in range(len(data)):
+        data[i,0] = df[i]
+        data[i,1] = df[i+20]
+    
+    params = calibrate_vasicek()
+    
+    # Data contains r0 and rT
+    exceedances_upper = 0
+    exceedances_lower = 0
+    for i in range(len(data)):
+        l, u = vasicek(data[i,0], params[0], params[1], params[2])
+        exceedances_upper += int(u < data[i,1])
+        exceedances_lower += int(l > data[i,1])
+    return exceedances_upper, exceedances_lower
+
     
 def ester_classifier(load_epochs=50):
     # Load the ESTER model with an additional 8.5 bps and the shuffled ids 
@@ -173,14 +231,15 @@ def ester_classifier(load_epochs=50):
     probs_per_time = np.sum(results, axis = 0) / (np.count_nonzero(results, axis = 0) + 1e-11)
     
     df = pd.read_csv("data/pre_ESTER.csv", sep=";").WT
+    df = df.iloc[::-1] # Make dataset chronological for plotting
     
     plt.figure()
-    plt.plot(df, label = 'pre- ‎€STER')
+    plt.plot(df.values, label = 'pre- ‎€STER')
     
     new = probs_per_time / 5.1 - 0.6
-    plt.plot(new, label = 'Realness score for pre trained discriminator')
-    plt.title(r'pre- ‎€STER and its realness score')
-    plt.ylabel(r'Short rate \tau')
+    plt.plot(new, label = 'Realness score pre- ‎€STER')
+    plt.title(r'Realness score pre- ‎€STER')
+    plt.ylabel(r'€STER')
     plt.xlabel(r'pre-ESTER days')
     plt.ylim((-0.57, -0.41))
     plt.legend()
@@ -196,4 +255,4 @@ def ester_classifier(load_epochs=50):
     secaxy.set_ylabel(r'Realness score')    
     plt.show()
         
-    return probs
+    return probs_per_time

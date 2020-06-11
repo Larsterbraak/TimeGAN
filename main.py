@@ -3,7 +3,7 @@ MSc Thesis Quantitative Finance
 Title: Interest rate risk due to EONIA-ESTER transition
 Author: Lars ter Braak (larsterbraak@gmail.com)
 
-Last updated: June 4th 2020
+Last updated: June 11th 2020
 Code Author: Lars ter Braak (larsterbraak@gmail.com)
 
 -----------------------------
@@ -17,6 +17,7 @@ Outputs
 import numpy as np
 import os
 import tensorflow as tf
+import pandas as pd
 
 os.chdir('C://Users/s157148/Documents/Github/TimeGAN')
 
@@ -33,7 +34,7 @@ X_train, X_test = create_dataset(name = 'EONIA',
 
 # 3. Train TimeGAN model
 hparams = [] # Used for hyperparameter tuning
-parameters = {'hidden_dim':4, 'num_layers':3, 'iterations':105,
+parameters = {'hidden_dim':4, 'num_layers':3, 'iterations':310,
               'batch_size': 50, 'module_name':'lstm', 'z_dim':5}
 
 from tgan import run
@@ -41,9 +42,9 @@ run(parameters, hparams, X_train, X_test,
     load=False, load_epochs=0, load_log_dir = '')
 
 # 4. Perform the Train on Synthetic, Test on Real
-from metrics import load_models, coverage_test_basel, ester_classifier
+from metrics import load_models, coverage_test_basel, coverage_test_vasicek, ester_classifier
 
-e_model, r_model, s_model, g_model, d_model = load_models(50) # Load pre-trained models
+e_model, r_model, s_model, g_model, d_model = load_models(200) # Load pre-trained models
 
 # Perform the coverage test for a lower and upper Value-at-Risk
 classification_lower, exceedances = coverage_test_basel(generator_model = g_model,
@@ -56,45 +57,46 @@ classification_upper, exceedances = coverage_test_basel(generator_model = g_mode
                                                         lower=False, 
                                                         hidden_dim = 4)
 
-# =============================================================================
-# Provide a plot of the realness of ESTER + 8.5 bps 
-# =============================================================================
+exceedances_upper, exceedances_lower = coverage_test_vasicek()
 
 # Calculate prob of ESTER for TimeGAN calibrated on EONIA 
 probs_ester = ester_classifier(load_epochs=50)    
 
-# =============================================================================
-# Provide correlation matrix for realness and stylized facts of short rates
-# =============================================================================
+from stylized_facts import descriptives_over_time
+sf_over_time = descriptives_over_time()
 
-# Still not done
+# Check the correlation matrix 
+XY = pd.DataFrame(sf_over_time)
+XY.columns = ['V', 'S', 'K', 'H', 'A', 'FT', 'FS', 'SP']
+XY['P'] = pd.DataFrame(probs_ester[148:])
+import seaborn as sns
+corr = XY.corr()
+ax = sns.heatmap(
+    corr, 
+    vmin=-1, vmax=1, center=0,
+    cmap=sns.diverging_palette(20, 220, n=200),
+    square=True
+)
+ax.set_xticklabels(
+    ax.get_xticklabels(),
+    rotation=45,
+    horizontalalignment='right'
+)
+
+# Skip the first 150 days
+import statsmodels.api as sm
+sf_over_time = sm.add_constant(sf_over_time)
+
+model = sm.OLS(probs_ester[148:], sf_over_time)
+results = model.fit()
+print(results.summary())
+print(results.summary().as_latex())
 
 # =============================================================================
 # Provide a way to adjust the latent space to account for the difference in ESTER and EONIA
 # =============================================================================
 
 # Still not done
-
-# The probabilities are some where aroud 0.5 so it can not tell whether
-# or not it is different from EONIA
-
-# Here we must know the stylized facts per time step and then we can form a correlation matrix 
-
-# # Check which latent factors are responsible for the 
-# unravel_latent = np.reshape(H_hat, (H_hat.shape[0] * H_hat.shape[1], H_hat.shape[2]))
-# unravel_probs = np.ravel(probs)    
-
-# from sklearn import linear_model
-# regr = linear_model.LinearRegression()
-# regr.fit(unravel_latent, unravel_probs)
-
-# print('Intercept: \n', regr.intercept_)
-# print('Coefficients: \n', regr.coef_)
-
-# import statsmodels.api as sm
-# X = sm.add_constant(unravel_latent) # adding a constant
-# model = sm.OLS(unravel_probs, X).fit()    
-# model.summary()
     
 # =============================================================================
 # Create a HParams dashboard for hyper parameter tuning

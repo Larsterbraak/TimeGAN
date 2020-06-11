@@ -39,6 +39,7 @@ def create_dataset(name='pre-ESTER', normalization='min-max',
     if name == 'EONIA':
         df = pd.read_csv("data/EONIA.csv", sep=";")
         df = df.iloc[:, 2:] # Remove the Date variable from the dataset
+        df = df.iloc[::-1] # Make dataset chronological
         df = np.ravel(np.diff(df, axis = 0))
         multidimensional = False
     elif name == 'pre-ESTER':

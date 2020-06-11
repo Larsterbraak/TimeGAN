@@ -61,6 +61,22 @@ def hurst(data):
 # Calculate the characteristics of the interest rates
 # =============================================================================
 
+def descriptives_over_time():
+    data = np.ravel(pd.read_csv("C:/Users/s157148/Documents/Research/Data/PRE_ESTER.csv", sep=";").PRE_ESTER)
+    descriptives = np.zeros((len(data)-150, 8))
+    for i in range(len(data)-150):
+        temp = data[i:(i+150)]
+        descriptives[i,0] = np.var(temp)
+        descriptives[i,1] = scipy.stats.skew(temp)
+        descriptives[i,2] = scipy.stats.kurtosis(temp)
+        descriptives[i,3] = hurst(temp)
+        descriptives[i,4] = adfuller(temp)[1]
+        strength_measures = strength(temp)
+        descriptives[i,5] = strength_measures[0]
+        descriptives[i,6] = strength_measures[1]
+        descriptives[i,7] = spikiness(temp)
+    return descriptives
+
 def descriptives(data):
     count = len(data)
     variance = np.var(data)
@@ -84,19 +100,23 @@ def descriptives(data):
           '\n Strength trend', np.round(strength_trend, 5),
           '\n Strength season', np.round(strength_season, 5), 
           '\n Spikiness', spike)
+    return 'Done'
+
+# # Calculate the daily differences
+# df.EONIA[1:] = np.diff(df.EONIA)
+# df = df.iloc[1:, :]
+
+# df_pre_ester.PRE_ESTER[1:] = np.diff(df_pre_ester.PRE_ESTER)
+# df_pre_ester = df_pre_ester.iloc[1:, :] 
+
+# df_ester.ESTER[1:] = np.diff(df_ester.ESTER)
+# df_ester = df_ester.iloc[1:, :]
+
+# descriptives(df.EONIA.values)
+# descriptives(df.EONIA.values[4662:5310])
+# descriptives(df_pre_ester.PRE_ESTER.values)    
+# descriptives(df_ester.ESTER.values)
 
 
-# Calculate the daily differences
-df.EONIA[1:] = np.diff(df.EONIA)
-df = df.iloc[1:, :]
 
-df_pre_ester.PRE_ESTER[1:] = np.diff(df_pre_ester.PRE_ESTER)
-df_pre_ester = df_pre_ester.iloc[1:, :] 
-
-df_ester.ESTER[1:] = np.diff(df_ester.ESTER)
-df_ester = df_ester.iloc[1:, :]
-
-descriptives(df.EONIA.values)
-descriptives(df.EONIA.values[4662:5310])
-descriptives(df_pre_ester.PRE_ESTER.values)    
-descriptives(df_ester.ESTER.values)
+#test = descriptives_over_time(df_pre_ester.PRE_ESTER.values)
