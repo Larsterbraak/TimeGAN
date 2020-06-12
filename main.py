@@ -151,7 +151,7 @@ from tensorboard.plugins import projector
 def register_embedding(embedding_tensor_name, meta_data_fname, log_dir):
     config = projector.ProjectorConfig()
     embedding = config.embeddings.add()
-    embedding.tensor_name = embedding_tensor_name
+    embedding.tensor_name = "embedding/.ATTRIBUTES/VARIABLE_VALUE"
     embedding.metadata_path = meta_data_fname
     projector.visualize_embeddings(log_dir, config)
 
@@ -181,6 +181,9 @@ fake = tf.reshape(r_model(g_model(RandomGenerator(counter, [20, 4]))), (counter,
 
 # Concatenate along the first dimension to ge a new tensor
 x = tf.concat([real, fake], axis = 0)
+
+# Reshape back to [7054, 20]
+x = tf.reshape(x, (7054, 20))
 y = np.append(['real' for x in range(counter)], ['fake' for x in range(counter)])
 
 LOG_DIR ='logs'  # Tensorboard log dir
