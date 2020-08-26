@@ -24,11 +24,11 @@ Outputs
 import numpy as np
 import datetime
 import tensorflow as tf
-import os
+#import os
 # import scipy # Used for skewness and kurtosis of embedding space
 
 # Change to the needed working directory
-os.chdir('C://Users/s157148/Documents/Github/TimeGAN')
+#os.chdir('C://Users/s157148/Documents/Github/TimeGAN')
 
 # 3. Train TimeGAN model
 from models.Embedder import Embedder
@@ -48,6 +48,8 @@ from descriptions_tensorboard import (descr_auto_loss, descr_auto_grads_embedder
 
 from metrics import load_models, image_grid
 
+mirrored_strategy = tf.distribute.MirroredStrategy()
+
 def run(parameters, hparams, X_train, X_test, 
         load=False, load_epochs=0, load_log_dir=""):
     
@@ -55,7 +57,7 @@ def run(parameters, hparams, X_train, X_test,
     hidden_dim   = parameters['hidden_dim']
     num_layers   = parameters['num_layers']  # Still have to implement
     iterations   = parameters['iterations']  # Test run to check for overfitting
-    batch_size   = parameters['batch_size']  # Currently locked at 25
+    batch_size   = parameters['batch_size'] * mirrored_strategy.num_replicas_in_sync # To scale the batch size according to the mirrored strategy
     module_name  = parameters['module_name'] # 'lstm' or 'GRU'' --> Still have to implement this
     z_dim        = parameters['z_dim']       
     lambda_val   = 1 # Hyperparameter for ..
@@ -80,12 +82,13 @@ def run(parameters, hparams, X_train, X_test,
     if load:
         embedder_model, recovery_model, supervisor_model, generator_model, discriminator_model = load_models(load_epochs)
     else:
-        # Create an instance of all neural networks models (All LSTM)
-        embedder_model = Embedder('logs/embedder', hparams, dimensionality = 1)
-        recovery_model = Recovery('logs/recovery', hparams, dimensionality = 1) # If used for EONIA rate only
-        generator_model = Generator('logs/generator', hparams)
-        supervisor_model = Supervisor('logs/supervisor', hparams)
-        discriminator_model = Discriminator('logs/TimeGAN', hparams)
+        with mirrored_strategy.scope():
+            # Create an instance of all neural networks models (All LSTM)
+            embedder_model = Embedder('logs/embedder', hparams, hidden_dim, dimensionality = 11)
+            recovery_model = Recovery('logs/recovery', hparams, hidden_dim, dimensionality = 11) # If used for EONIA rate only
+            supervisor_model = Supervisor('logs/supervisor', hparams, hidden_dim)
+            generator_model = Generator('logs/generator', hparams, hidden_dim)
+            discriminator_model = Discriminator('logs/TimeGAN', hparams, hidden_dim)
         
     r_loss_train = tf.keras.metrics.Mean(name='r_loss_train') # Step 1 metrics 
     r_loss_test = tf.keras.metrics.Mean(name='r_loss_test')
@@ -121,15 +124,30 @@ def run(parameters, hparams, X_train, X_test,
     loss_object_accuracy = tf.keras.metrics.Accuracy() # To calculate accuracy
     
     # Create the loss object, optimizer, and training function
-    loss_object = tf.keras.losses.MeanSquaredError()
-    loss_object_adversarial = tf.losses.BinaryCrossentropy(from_logits=True) # More stable
+    loss_object = tf.keras.losses.MeanSquaredError(
+        reduction=tf.keras.losses.Reduction.NONE) # Rename this to MSE
+    loss_object_adversarial = tf.losses.BinaryCrossentropy(
+        from_logits=True,
+        reduction=tf.keras.losses.Reduction.NONE) # More stable
     # from_logits = True because the last dense layers is linear and
     # does not have an activation -- could be differently specified
     
-    optimizer = tf.keras.optimizers.Adam(0.01) # Possibly increase the learning rate to stir up the GAN training
+    # Activate the optimizer using the Mirrored Strategy approach
+    with mirrored_strategy.scope():
+        optimizer = tf.keras.optimizers.Adam(0.01) # Possibly increase the learning rate to stir up the GAN training
+    
+    # Change the input dataset to be used by the mirrored strategy
+    X_train = mirrored_strategy.experimental_distribute_dataset(X_train)
+    X_test = mirrored_strategy.experimental_distribute_dataset(X_test)
+    
+    # Compute the loss according to the MirroredStrategy approach
+    def compute_loss(real, regenerate):
+        per_example_loss = loss_object(real, regenerate)
+        return tf.nn.compute_average_loss(per_example_loss, 
+                                          global_batch_size=batch_size)
     
     # 1. Start with embedder training (Optimal LSTM auto encoder network)
-    @tf.function(input_signature=[tf.TensorSpec(shape=(None,20,1), 
+    @tf.function(input_signature=[tf.TensorSpec(shape=(None,20,11), 
                                                 dtype=tf.float64)])
     def train_step_embedder(X_train):
         with tf.GradientTape() as tape:
@@ -138,8 +156,11 @@ def run(parameters, hparams, X_train, X_test,
             r_pred_train = recovery_model(e_pred_train)
             
             # Compute loss for LSTM autoencoder
-            R_loss_train = loss_object(X_train, r_pred_train)
-        
+            #R_loss_train = loss_object(X_train, r_pred_train)
+            
+            # Compute the loss for the LSTM autoencoder using MirroredStrategy
+            R_loss_train = compute_loss(X_train, r_pred_train)
+            
         # Compute the gradients with respect to the Embedder and Recovery vars
         gradients = tape.gradient(R_loss_train, 
                                   embedder_model.trainable_variables +
@@ -155,9 +176,18 @@ def run(parameters, hparams, X_train, X_test,
         grad_embedder_ul(tf.norm(gradients[9]))
         grad_recovery_ll(tf.norm(gradients[12]))
         grad_recovery_ul(tf.norm(gradients[20]))
+        #r_loss_train(R_loss_train)
+    
+    @tf.function
+    def distributed_train_step_embedder(X_train):
+        per_replica_losses = mirrored_strategy.run(train_step_embedder, 
+                                                   args=(X_train,))
+        R_loss_train = mirrored_strategy.reduce(tf.distribute.ReduceOp.SUM, 
+                                                per_replica_losses, 
+                                                axis=None)
         r_loss_train(R_loss_train)
-        
-    @tf.function(input_signature=[tf.TensorSpec(shape=(None,20,1), 
+    
+    @tf.function(input_signature=[tf.TensorSpec(shape=(None,20,11), 
                                                 dtype=tf.float64)])
     def test_step_embedder(X_test):
         # Apply the Embedder to data and Recovery to predicted hidden states
@@ -165,13 +195,16 @@ def run(parameters, hparams, X_train, X_test,
         r_pred_test = recovery_model(e_pred_test)
         
         # Compute the loss function for the LSTM autoencoder
-        R_loss_test = loss_object(X_test, r_pred_test)
+        #R_loss_test = loss_object(X_test, r_pred_test)
+        
+        # Compute the loss function for the LSTM autoencoder using MirroredStrategy
+        R_loss_test = compute_loss(X_test, r_pred_test)
         r_loss_test(R_loss_test)    
     
     # Initialize the number of minibatches
     nr_mb_train = 0
     # Train the embedder for the input data
-    for epoch in range(load_epochs, load_epochs + 5):
+    for epoch in range(load_epochs, load_epochs + 55):
         r_loss_train.reset_states()
         r_loss_test.reset_states()
         grad_embedder_ll.reset_states()
@@ -181,7 +214,7 @@ def run(parameters, hparams, X_train, X_test,
        
         # Train over the complete train and test dataset
         for x_train in X_train:
-            train_step_embedder(x_train)
+            distributed_train_step_embedder(x_train)
             with summary_writer_bottom.as_default():
                 tf.summary.scalar('1. Pre-training autoencoder/2. Gradient norm - embedder',
                                   grad_embedder_ll.result(), step=nr_mb_train)
@@ -203,7 +236,7 @@ def run(parameters, hparams, X_train, X_test,
         with summary_writer_train.as_default():
             tf.summary.scalar('1. Pre-training autoencoder/1. Recovery loss', 
                               r_loss_train.result(), step=epoch)
-            if epoch % 10 == 0: # Only log trainable variables per 10 epochs
+            if epoch % 50 == 0: # Only log trainable variables per 10 epochs
                 add_hist(embedder_model.trainable_variables, epoch)
                 add_hist(recovery_model.trainable_variables, epoch)
         
@@ -221,7 +254,7 @@ def run(parameters, hparams, X_train, X_test,
     print('Finished Embedding Network Training')
 
     # 2. Continue w/ supervisor training on real data (same temporal relations)
-    @tf.function(input_signature=[tf.TensorSpec(shape=(None,20,1), 
+    @tf.function(input_signature=[tf.TensorSpec(shape=(None,20,11), 
                                                 dtype=tf.float64)])
     def train_step_supervised(X_train):
       with tf.GradientTape() as tape:
@@ -230,9 +263,13 @@ def run(parameters, hparams, X_train, X_test,
         H_hat_supervise = supervisor_model(e_pred_train)
         
         # Compute squared loss for real embedding and supervised embedding
-        G_loss_S_train = loss_object(e_pred_train[:, 1:, :],
-                               H_hat_supervise[:, 1:, :])
-        tf.debugging.assert_non_negative(G_loss_S_train)
+        #G_loss_S_train = loss_object(e_pred_train[:, 1:, :],
+        #                       H_hat_supervise[:, 1:, :])
+        #tf.debugging.assert_non_negative(G_loss_S_train)
+      
+        # Compute the Supervisor model loss for the MirroredStrategy approach
+        G_loss_S_train = compute_loss(e_pred_train[:, 1:, :],
+                                      H_hat_supervise[:, 1:, :])
       
       # Compute the gradients with respect to the Embedder and Recovery vars
       gradients = tape.gradient(G_loss_S_train, 
@@ -245,9 +282,19 @@ def run(parameters, hparams, X_train, X_test,
       # Record the lower and upper layer gradients + the MSE for the supervisor
       grad_supervisor_ll(tf.norm(gradients[1]))
       grad_supervisor_ul(tf.norm(gradients[6]))
-      g_loss_s_train(G_loss_S_train)
+      # g_loss_s_train(G_loss_S_train)
       
-    @tf.function(input_signature=[tf.TensorSpec(shape=(None,20,1), 
+    @tf.function(input_signature=[tf.TensorSpec(shape=(None, 20, 11),
+                                                dtype=tf.float64)])
+    def distributed_train_step_supervised(X_train):
+        per_replica_losses = mirrored_strategy.run(train_step_supervised,
+                                                   args = (X_train,))
+        G_loss_S_train = mirrored_strategy.reduce(tf.distribute.ReduceOp.SUM,
+                                                  per_replica_losses,
+                                                  axis = None)
+        g_loss_s_train(G_loss_S_train)
+    
+    @tf.function(input_signature=[tf.TensorSpec(shape=(None,20,11), 
                                                 dtype=tf.float64)])
     def test_step_supervised(X_test):
         e_pred_test = embedder_model(X_test)
@@ -265,7 +312,7 @@ def run(parameters, hparams, X_train, X_test,
         grad_supervisor_ul.reset_states()
         
         for x_train in X_train:
-            train_step_supervised(x_train)                
+            distributed_train_step_supervised(x_train)                
             with summary_writer_bottom.as_default():
                 tf.summary.scalar('2. Pre-training supervisor/2. Gradient norm - supervisor',
                                   grad_supervisor_ll.result(), step=nr_mb_train)
@@ -297,7 +344,7 @@ def run(parameters, hparams, X_train, X_test,
     print('Finished training with Supervised loss only')
     
     # 3. Continue with joint training
-    @tf.function(input_signature=[tf.TensorSpec(shape=(None,20,1), dtype=tf.float64),
+    @tf.function(input_signature=[tf.TensorSpec(shape=(None,20,11), dtype=tf.float64),
                                   tf.TensorSpec(shape=(None,20,hidden_dim), dtype=tf.float64),
                                   tf.TensorSpec(shape=(), dtype = tf.bool),
                                   tf.TensorSpec(shape=(), dtype = tf.bool)])
@@ -313,7 +360,7 @@ def run(parameters, hparams, X_train, X_test,
         else:
             if wasserstein:
                 with tf.GradientTape() as tape:
-                    H = embedder_model(x_train)
+                    H = embedder_model(X_train)
                     x_tilde = recovery_model(H)
                 
                     # Apply Generator to Z and apply Supervisor on fake embedding
@@ -341,7 +388,7 @@ def run(parameters, hparams, X_train, X_test,
         
             else:
                 with tf.GradientTape() as tape:
-                    H = embedder_model(x_train)
+                    H = embedder_model(X_train)
                     x_tilde = recovery_model(H)
                 
                     # Apply Generator to Z and apply Supervisor on fake embedding
@@ -406,7 +453,7 @@ def run(parameters, hparams, X_train, X_test,
         g_loss_u_e_test(G_loss_U_e_test)
         g_loss_s_test(G_loss_S_test)
                 
-    @tf.function(input_signature=[tf.TensorSpec(shape=(None,20,1), dtype=tf.float64)])
+    @tf.function(input_signature=[tf.TensorSpec(shape=(None,20,11), dtype=tf.float64)])
     def train_step_jointly_embedder(X_train):
         with tf.GradientTape() as tape:
           # Apply Embedder to data and recover the data from the embedding space
@@ -436,7 +483,7 @@ def run(parameters, hparams, X_train, X_test,
         e_loss_T0(r_loss_train) 
         g_loss_s_embedder(G_loss_S_embedder)
         
-    @tf.function(input_signature=[tf.TensorSpec(shape=(None,20,1), dtype=tf.float64)])
+    @tf.function(input_signature=[tf.TensorSpec(shape=(None,20,11), dtype=tf.float64)])
     def test_step_jointly_embedder(X_test):
       H = embedder_model(X_test) 
       X_tilde = recovery_model(H)
@@ -445,10 +492,11 @@ def run(parameters, hparams, X_train, X_test,
       G_loss_S_embedder_test = loss_object(H[:,1:,:], H_hat_supervise[:,1:,:])
       e_loss_T0_test(E_loss_T0_test)
       g_loss_s_embedder_test(G_loss_S_embedder_test)
-     
+    
+    @tf.function()
     def gradient_penalty(real, fake):
         try: 
-            alpha = tf.random.uniform(shape=[real.shape[0], 20, 4], minval=0., maxval=1., dtype = tf.float64)
+            alpha = tf.random.uniform(shape=[real.shape[0], 20, hidden_dim], minval=0., maxval=1., dtype = tf.float64)
             interpolates = real + alpha * (fake - real)
             with tf.GradientTape() as tape:
                 tape.watch(interpolates)
@@ -459,13 +507,13 @@ def run(parameters, hparams, X_train, X_test,
             gradient_penalty = tf.reduce_mean((slopes-1.)**2)
             return gradient_penalty
         except:
-            return tf.constant(0, dtype=tf.float64)
+            return tf.constant(0, dtype=tf.float16)
     
-    @tf.function(input_signature=[tf.TensorSpec(shape=(None,20,1), dtype=tf.float64),
+    @tf.function(input_signature=[tf.TensorSpec(shape=(None,20,11), dtype=tf.float64),
                                   tf.TensorSpec(shape=(None,20, hidden_dim), dtype=tf.float64),
-                                  tf.TensorSpec(shape=(), dtype = tf.float64),
+                                  tf.TensorSpec(shape=(), dtype = tf.float16),
                                   tf.TensorSpec(shape=(), dtype = tf.bool)])
-    def train_step_discriminator(X_train, Z, smoothing_factor=1, wasserstein = False):
+    def train_step_discriminator(X_train, Z, smoothing_factor=1, wasserstein=False):
         if wasserstein: # Use the Wasserstein Gradient penalty
             with tf.GradientTape() as tape:
                 # Embeddings for real data and classifications from discriminator
@@ -475,7 +523,7 @@ def run(parameters, hparams, X_train, X_test,
                 Y_real = discriminator_model.predict(H)
                 Y_fake = discriminator_model.predict(E_hat)
                 D_loss = tf.reduce_mean(Y_fake) - tf.reduce_mean(Y_real)
-                D_loss += gamma * gradient_penalty(H, E_hat)
+                D_loss += gamma * tf.cast(gradient_penalty(H, E_hat), tf.float16)
                 
             # Compute the gradients with respect to the discriminator model
             grad_d=tape.gradient(D_loss,
@@ -516,7 +564,7 @@ def run(parameters, hparams, X_train, X_test,
             grad_discriminator_ul(tf.norm(grad_d[9]))
             d_loss(D_loss)
             
-    @tf.function(input_signature=[tf.TensorSpec(shape=(None,20,1), dtype=tf.float64),
+    @tf.function(input_signature=[tf.TensorSpec(shape=(None,20,11), dtype=tf.float64),
                                   tf.TensorSpec(shape=(None,20, hidden_dim), dtype=tf.float64),
                                   tf.TensorSpec(shape=(), dtype=tf.bool)])
     def test_step_discriminator(X_test, Z, wasserstein=False):
@@ -556,6 +604,7 @@ def run(parameters, hparams, X_train, X_test,
     print('Start joint training')
     nr_mb_train = 0 # Iterator for generator training
     o = -1 # Iterator for discriminator training
+    tf.summary.trace_on(graph=False, profiler=True)# Initialize the profiler
     for epoch in range(load_epochs, iterations+load_epochs):
         g_loss_u_e.reset_states() # Reset the loss at every epoch
         g_loss_s.reset_states()
@@ -570,7 +619,7 @@ def run(parameters, hparams, X_train, X_test,
         if epoch == 0 and o == -1:
             # Train the generator and embedder sequentially
             for x_train in X_train:
-                Z_mb = RandomGenerator(batch_size, [20, hidden_dim])
+                Z_mb = tf.cast(RandomGenerator(batch_size, [20, hidden_dim]), tf.float32)
                 train_step_jointly_generator(x_train, Z_mb, 
                                              graphing = tf.constant(True, dtype=tf.bool),
                                              wasserstein = tf.constant(True, dtype=tf.bool))
@@ -645,7 +694,7 @@ def run(parameters, hparams, X_train, X_test,
             for x_train in X_train: # Train discriminator max 5 iterations or stop if optimal discriminator
                 Z_mb = RandomGenerator(batch_size, [20, hidden_dim])
                 train_step_discriminator(x_train, Z_mb, 
-                                         smoothing_factor = tf.constant(1.0, dtype=tf.float64),
+                                         smoothing_factor = tf.constant(1.0, dtype=tf.float16),
                                          wasserstein=tf.constant(True, dtype=tf.bool))
                
                 with summary_writer_top.as_default():
@@ -755,5 +804,5 @@ def run(parameters, hparams, X_train, X_test,
                   str(np.round(g_loss_s_embedder.result().numpy(),8)) +
                   ', e_loss_t0: ' + str(np.round(e_loss_T0.result().numpy(),8)) + 
                   ', d_loss: ' + str(np.round(d_loss.result().numpy(),8))) 
-            
+        tf.summary.trace_export(name="model_trace", step=0, profiler_outdir=log_dir)
     print('Finish joint training')

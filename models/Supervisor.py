@@ -1,41 +1,35 @@
 from tensorflow.keras import Model
-from tensorflow.keras.layers import LSTM, Dense
+from tensorflow.keras.layers import LSTM, Dense, Dropout
 
 # Supervisor network in Tensorflow 2.x
 class Supervisor(Model):
-    def __init__(self, tensorboard_folder_path, hparams):
+    def __init__(self, tensorboard_folder_path, hparams, hidden_dim, dropout = 0.2):
         super(Supervisor, self).__init__()
-        self.LSTM1 = LSTM(units = 7,
+        self.LSTM1 = LSTM(units = hidden_dim,
                           return_sequences=True,
                           kernel_initializer = 'he_uniform',
-                          dropout = 0.2,
-                          recurrent_dropout = 0.2,
-                          input_shape=(20,4),
+                          dropout = 0,
+                          recurrent_dropout = 0,
+                          input_shape=(20,hidden_dim),
                           name = 'LSTM1')
-        self.LSTM2 = LSTM(units=6,
+        self.Dropout1 = Dropout(dropout)
+        self.LSTM2 = LSTM(units=hidden_dim + 2,
                           return_sequences=True,
                           kernel_initializer = 'he_uniform',
-                          dropout = 0.2,
-                          recurrent_dropout = 0.2,
+                          dropout = 0,
+                          recurrent_dropout = 0,
                           name='LSTM2')
-        self.Dense1 = Dense(units=4,
+        self.Dropout2 = Dropout(dropout)
+        self.Dense1 = Dense(units=hidden_dim,
                             activation='sigmoid', # To stay in the [0,1] range
                             name = 'Dense1')
         self.graph_has_been_written=False
         self.tensorboard_folder_path=tensorboard_folder_path
         
-    def call(self, x, **kwargs): # Implement training = False when testing
+    def call(self, x, training=True, **kwargs): # Implement training = False when testing
         x = self.LSTM1(x)
+        x = self.Dropout1(x, training)
         x = self.LSTM2(x)
+        x = self.Dropout2(x, training)
         x = self.Dense1(x)
-        
-        # # Print the graph in TensorBoard
-        # if not self.graph_has_been_written:
-        #     model_graph = x.graph
-        #     writer = tf.compat.v1.summary.FileWriter(logdir=self.tensorboard_folder_path,
-        #                                              graph=model_graph)
-        #     writer.flush()
-        #     self.graph_has_been_written = True
-        #     print("Wrote eager graph to:", self.tensorboard_folder_path)
-       
         return x

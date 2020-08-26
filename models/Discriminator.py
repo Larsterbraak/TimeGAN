@@ -4,26 +4,26 @@ from tensorflow.keras.layers import LSTM, Dense, Bidirectional
 
 # Discriminator network for GAN in latent space in Tensorflow 2.x
 class Discriminator(Model):
-    def __init__(self, tensorboard_folder_path, hparams):
+    def __init__(self, tensorboard_folder_path, hparams, hidden_dim):
         super(Discriminator, self).__init__()
         self.LSTM1 = Bidirectional(LSTM(units=7,
                                         return_sequences=True,
                                         kernel_initializer = 'he_uniform',
                                         dropout = 0.2,
-                                        recurrent_dropout = 0.2,
-                                        input_shape=(20,4),
+                                        recurrent_dropout = 0,
+                                        input_shape=(20,hidden_dim),
                                         name='LSTM1'))
         self.LSTM2 = Bidirectional(LSTM(units=4,
                                         return_sequences=True,
                                         kernel_initializer = 'he_uniform',
                                         dropout = 0.2,
-                                        recurrent_dropout = 0.2,
+                                        recurrent_dropout = 0,
                                         name='LSTM2'))
         self.LSTM3 = Bidirectional(LSTM(units=2,
                                         return_sequences=True,
                                         kernel_initializer = 'he_uniform',
                                         dropout = 0.2,
-                                        recurrent_dropout = 0.2,
+                                        recurrent_dropout = 0,
                                         name='LSTM3'))
         self.Dense1 = Dense(units=1,
                             activation=None,

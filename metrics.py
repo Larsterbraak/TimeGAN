@@ -23,10 +23,10 @@ Outputs
 - Classification for the Value-at-Risk model
 """
 
-import os
+#import os
 
 # Change to the needed working directory
-os.chdir('C://Users/s157148/Documents/Github/TimeGAN')
+#os.chdir('C://Users/s157148/Documents/Github/TimeGAN')
 
 import numpy as np
 from TSTR import value_at_risk

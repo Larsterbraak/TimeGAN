@@ -21,27 +21,26 @@ Outputs
 - Preprocessed time series of European short rates
 """
 
-import os
+#import os
 
 # Change to the needed working directory
-os.chdir('C://Users/s157148/Documents/Github/TimeGAN')
+#os.chdir('C://Users/s157148/Documents/Github/TimeGAN')
 
 # Necessary packages
 import pandas as pd
 import numpy as np
-from sklearn.preprocessing import MinMaxScaler
+from sklearn import preprocessing
 import tensorflow as tf
 
-def create_dataset(name='pre-ESTER', normalization='min-max',
-                   seq_length=20, training=True, multidimensional=True,
+def create_dataset(name='EONIA', normalization='outliers',
+                   seq_length=20, training=True, multidimensional = True,
                    ester_probs=False, include_spread=False):
     
     if name == 'EONIA':
-        df = pd.read_csv("data/EONIA.csv", sep=";")
-        df = df.iloc[:, 2:] # Remove the Date variable from the dataset
-        df = df.iloc[::-1] # Make dataset chronological
-        df = np.ravel(np.diff(df, axis = 0))
-        multidimensional = False
+        df = pd.read_csv("data/Master_EONIA.csv", sep=";")
+        df = df.iloc[:, 1:] # Remove the Date variable from the dataset
+        #df = df.iloc[::-1] # Make dataset chronological
+        #df = np.ravel(np.diff(df, axis = 0))
     elif name == 'pre-ESTER':
         df = pd.read_csv('data/pre_ESTER.csv', sep = ';')
         df = df.iloc[:, 1:] # Remove the Date variable from the dataset
@@ -67,7 +66,9 @@ def create_dataset(name='pre-ESTER', normalization='min-max',
     
     if normalization == 'min-max':
         if multidimensional:
-            df = MinMaxScaler().fit_transform(df)
+            df = preprocessing.MinMaxScaler().fit_transform(df)
+    elif normalization == 'outliers':
+        df = preprocessing.RobustScaler().fit_transform(df)
     else:
         return 'Still have to implement other normalization \
             techniques.'
@@ -102,8 +103,8 @@ def create_dataset(name='pre-ESTER', normalization='min-max',
         X_train = outputX[0:split,:,:]
         X_test = outputX[split:,:,:]
         
-        X_train = tf.data.Dataset.from_tensor_slices(tf.cast(X_train, tf.float64)).batch(50)
-        X_test = tf.data.Dataset.from_tensor_slices(tf.cast(X_test, tf.float64)).batch(50)
+        X_train = tf.data.Dataset.from_tensor_slices(tf.cast(X_train, tf.float32)).batch(32*4)
+        X_test = tf.data.Dataset.from_tensor_slices(tf.cast(X_test, tf.float32)).batch(32*4)
         return X_train, X_test
     else:
         return idx, outputX
