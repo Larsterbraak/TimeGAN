@@ -26,8 +26,8 @@ import numpy as np
 from scipy.stats import norm
 
 # 1. Import the EONIA data
-data = pd.read_csv("data/Master_EONIA.csv", sep=";")
-data = np.array(data.iloc[3547:, 9]) # Filter for only EONIA 
+data = pd.read_csv("data/EONIA.csv", sep=";")
+data = np.array(data.iloc[:505,2])[::-1] # Filter for only EONIA 
 
 # 2. Vasicek model calibration using Linear Regression
 def model_calibration(data):
@@ -53,5 +53,14 @@ def VaR(r_0, data, time, percentile=0.995, upward=True):
         return np.ravel(expectation + np.sqrt(variance) * norm.ppf(percentile))
     else:
         return np.ravel(expectation - np.sqrt(variance) * norm.ppf(percentile))
-    
-VaR(-0.36, data, 20, True)
+
+# Toy example
+#VaR(-0.36, data, 20, True)    
+
+# 4. Implement the Kupiec test for Vasicek model
+upward = 0
+downward = 0
+
+for i in range(250):
+    upward += data[i+251] > VaR(data[i+250], data[i:i+250], 1, percentile=0.995, upward=True)
+    downward += data[i+251] < VaR(data[i+250], data[i:i+250], 1, percentile=0.995, upward=False)

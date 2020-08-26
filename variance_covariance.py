@@ -25,8 +25,8 @@ from sklearn.linear_model import LinearRegression
 from scipy.stats import norm
 
 df = pd.read_csv("data/Master_EONIA.csv", sep=";")
-eonia = np.array(df.iloc[:,9])
-df = df.iloc[2000:, 1:] # Remove the Date variable from the dataset
+eonia = np.array(df.iloc[1:,9])
+df = df.iloc[:, 1:] # Remove the Date variable from the dataset
 df.iloc[1:, 8] = np.diff(df['EONIA'])
 df = df.iloc[1:, :]
 
@@ -45,14 +45,21 @@ def VaR(r_0, risk_factors, data, time, percentile=0.995, upward=True):
     
     # Calculate the Value-at-Risk
     if upward:
-        return r_0 + time * (intercept + np.matmul(np.transpose(np.ravel(coef)), risk_factors)) + \
+        return np.ravel(r_0 + time * (intercept + np.matmul(np.transpose(np.ravel(coef)), risk_factors)) + \
                np.sqrt(time) * np.matmul(np.matmul(np.transpose(np.ravel(coef)),
-                                         cov_matrix), np.ravel(coef)) * norm.ppf(percentile)
+                                         cov_matrix), np.ravel(coef)) * norm.ppf(percentile))
     else:
-        return r_0 + time * (intercept + np.matmul(np.transpose(np.ravel(coef)), risk_factors)) - \
+        return np.ravel(r_0 + time * (intercept + np.matmul(np.transpose(np.ravel(coef)), risk_factors)) - \
                np.sqrt(time) * np.matmul(np.matmul(np.transpose(np.ravel(coef)),
-                                   cov_matrix), np.ravel(coef)) * norm.ppf(percentile)
+                                   cov_matrix), np.ravel(coef)) * norm.ppf(percentile))
 
 current_situation = np.array(df.drop('EONIA', axis=1).iloc[-1,:])
 VaR(eonia[-1], current_situation, df, 20, 0.995, False)
 
+# 4. Implement the Kupiec Test for the variance covariance simulation
+upper = 0
+lower = 0
+
+for i in range(250):
+    upper += eonia[3562+i] > VaR(eonia[3542+i], np.array(df.drop('EONIA', axis=1).iloc[3542+i]), df.iloc[:3542+i, :], 20, 0.995, True)
+    lower += eonia[3562+i] < VaR(eonia[3542+i], np.array(df.drop('EONIA', axis=1).iloc[3542+i]), df.iloc[:3542+i, :], 20, 0.995, False)
