@@ -178,7 +178,7 @@ def run(parameters, hparams, X_train, X_test,
         grad_recovery_ul(tf.norm(gradients[20]))
         #r_loss_train(R_loss_train)
     
-    @tf.function
+    @tf.function()
     def distributed_train_step_embedder(X_train):
         per_replica_losses = mirrored_strategy.run(train_step_embedder, 
                                                    args=(X_train,))
@@ -211,7 +211,7 @@ def run(parameters, hparams, X_train, X_test,
         grad_embedder_ul.reset_states()
         grad_recovery_ll.reset_states()
         grad_recovery_ul.reset_states()
-       
+        
         # Train over the complete train and test dataset
         for x_train in X_train:
             distributed_train_step_embedder(x_train)
@@ -522,7 +522,7 @@ def run(parameters, hparams, X_train, X_test,
                 E_hat = generator_model(Z)
                 Y_real = discriminator_model.predict(H)
                 Y_fake = discriminator_model.predict(E_hat)
-                D_loss = tf.reduce_mean(Y_fake) - tf.reduce_mean(Y_real)
+                D_loss = tf.reduce_mean(Y_real) - tf.reduce_mean(Y_fake)
                 D_loss += gamma * tf.cast(gradient_penalty(H, E_hat), tf.float16)
                 
             # Compute the gradients with respect to the discriminator model

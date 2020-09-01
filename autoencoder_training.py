@@ -21,6 +21,10 @@ os.chdir('C:/Users/s157148/Documents/GitHub/TimeGAN')
 
 import tensorflow as tf
 import numpy as np
+import pandas as pd
+from sklearn import preprocessing
+import matplotlib.pyplot as plt
+import datetime
 
 # 1. Data loading
 from data_loading import create_dataset
@@ -78,13 +82,51 @@ for x in range(1,5):
 from models.Supervisor import Supervisor
 
 # 5.1 Initialize the autoencoder and pre-train 10,0000 iterations
-autoencoder = Autoencoder(2, 0.3) 
-epochs = 10
+autoencoder = Autoencoder(4, 0.1) 
+epochs = 100
 for epoch in range(epochs):
     for step, batch_features in enumerate(X_train):
         train(autoencoder, opt, batch_features)
     print(epoch)
         
+# 5.1.1 Visualize the embeddings produced by the autoencoder network
+df = pd.read_csv("data/Master_EONIA.csv", sep=";")   
+df_process = preprocessing.RobustScaler().fit_transform(df.iloc[:, 1:]) 
+latent_space = autoencoder.encode(df_process[3548:3568,:].reshape((1,20,11,))).numpy()
+
+# More efficient and elegant pyplot
+plt.style.use(['science', 'no-latex'])
+
+dates = np.ravel(df.Date[3548:3568].values).astype(str)
+dates = [datetime.datetime.strptime(d,"%d-%m-%Y").date()
+               for d in dates]
+
+plt.figure(figsize=(12,8))
+plt.plot_date(dates, df.EONIA.iloc[3548:3568].values, 'b-', color = '#0C5DA5') 
+plt.plot_date(dates, latent_space.reshape(20,4)[:, 0]/10 -0.42, 'b-', color = '#00B945')
+plt.plot_date(dates, latent_space.reshape(20,4)[:, 1]/10 -0.42, 'b-', color = '#FF9500')
+plt.plot_date(dates, latent_space.reshape(20,4)[:, 2]/10 -0.42, 'b-', color = '#FF2C00')
+plt.plot_date(dates, latent_space.reshape(20,4)[:, 3]/10 -0.42, 'b-', color = '#845B97')
+ax = plt.gca()
+ax.set_xlim(datetime.date(2017, 10, 5), datetime.date(2017, 11, 3))
+
+def to_transactions(x):
+    return (x + 0.42)*10
+        
+def to_volume(x):
+    return x/10 -0.42
+
+ax.set_ylim((-.385, -.345))
+secaxy = ax.secondary_yaxis('right', functions = (to_transactions, to_volume))
+secaxy.set_ylabel(r'Latent variables')
+plt.legend(('EONIA', '$\mathcal{H}_1$', '$\mathcal{H}_2$',
+            '$\mathcal{H}_3$', '$\mathcal{H}_4$'), fontsize = 'xx-large')
+plt.ylabel(r'Short rate $r_t$ [%]')
+plt.xlabel(r'Time $t$')
+plt.title(r'EONIA and latent variables over time')
+#plt.savefig('EONIA_LATENT.png')
+plt.show()
+
 # 5.2 Train the supervsior model for different dropout for 10,000 iterations
 def train_supervisor(model, opt, original):
     with tf.GradientTape() as tape:
