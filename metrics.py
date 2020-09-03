@@ -23,10 +23,10 @@ Outputs
 - Classification for the Value-at-Risk model
 """
 
-#import os
+import os
 
 # Change to the needed working directory
-#os.chdir('C://Users/s157148/Documents/Github/TimeGAN')
+os.chdir('C://Users/s157148/Documents/Github/TimeGAN')
 
 import numpy as np
 from TSTR import value_at_risk
@@ -83,8 +83,8 @@ def create_plot_nn(equivalent, simulation, T, ax):
 
 def image_grid(N, T, hidden_dim, recovery_model, generator_model):
     # Get the EONIA T-day real values
-    _, EONIA = create_dataset(name='EONIA', seq_length = 20, training=False)
-    EONIA = np.reshape(EONIA, (EONIA.shape[0], EONIA.shape[1])) # These T-day intervals are shuffled
+    EONIA = create_dataset(name='EONIA', normalization='none', seq_length = 20, training=False)
+    #EONIA = np.reshape(EONIA, (EONIA.shape[0], EONIA.shape[1])) # These T-day intervals are shuffled
         
     figure = plt.figure(figsize=(15,15))
     plt.title('Nearest neighbour in the EONIA data')

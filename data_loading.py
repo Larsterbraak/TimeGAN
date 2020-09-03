@@ -63,15 +63,13 @@ def create_dataset(name='EONIA', normalization='outliers',
     
     if not multidimensional and (name == 'pre-ESTER' or name =='ESTER'):
         df = np.array(df.WT)
-    
     if normalization == 'min-max':
         if multidimensional:
             df = preprocessing.MinMaxScaler().fit_transform(df)
     elif normalization == 'outliers':
         df = preprocessing.RobustScaler().fit_transform(df)
     else:
-        return 'Still have to implement other normalization \
-            techniques.'
+        df = df.EONIA
             
     dataX = []
     
@@ -79,6 +77,9 @@ def create_dataset(name='EONIA', normalization='outliers',
     for i in range(0, len(df) - seq_length):
         _df = df[i : i + seq_length]
         dataX.append(_df)
+    
+    if normalization == 'none':
+        return dataX
     
     # Create random permutations to make it more i.i.d.
     idx = np.random.permutation(len(dataX))
