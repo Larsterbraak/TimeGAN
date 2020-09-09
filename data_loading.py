@@ -40,7 +40,8 @@ def create_dataset(name='EONIA', normalization='outliers',
         df = pd.read_csv("data/Master_EONIA.csv", sep=";")
         df = df.iloc[:, 1:] # Remove the Date variable from the dataset
         #df = df.iloc[::-1] # Make dataset chronological
-        #df = np.ravel(np.diff(df, axis = 0))
+        df.EONIA[1:] = np.diff(df.EONIA)
+        df = df.iloc[1:, :]
     elif name == 'pre-ESTER':
         df = pd.read_csv('data/pre_ESTER.csv', sep = ';')
         df = df.iloc[:, 1:] # Remove the Date variable from the dataset

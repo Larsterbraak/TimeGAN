@@ -24,11 +24,11 @@ Outputs
 import numpy as np
 import datetime
 import tensorflow as tf
-#import os
+import os
 # import scipy # Used for skewness and kurtosis of embedding space
 
 # Change to the needed working directory
-#os.chdir('C://Users/s157148/Documents/Github/TimeGAN')
+os.chdir('C://Users/s157148/Documents/Github/TimeGAN')
 
 # 3. Train TimeGAN model
 from models.Embedder import Embedder
