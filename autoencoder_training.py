@@ -19,19 +19,22 @@ Fully trained autoencoder based on the data
 import os
 os.chdir('C:/Users/s157148/Documents/GitHub/TimeGAN')
 
+from sklearn.model_selection import KFold
 import tensorflow as tf
 import numpy as np
 import pandas as pd
 from sklearn import preprocessing
 import matplotlib.pyplot as plt
 import datetime
+import time
 
 # 1. Data loading
 from data_loading import create_dataset
-X_train, X_test = create_dataset(name = 'EONIA',
-                                 normalization = 'outliers',
-                                 seq_length = 20,
-                                 multidimensional=True)
+_, X = create_dataset(name = 'EONIA',
+                      normalization = 'min-max',
+                      seq_length = 20,
+                      training=False,
+                      multidimensional=True)
 
 # 2. Import the Embedder and Recovery model and define Autoencoder
 from models.Embedder import Embedder
@@ -56,27 +59,44 @@ epochs = 2
 loss_object = tf.keras.losses.MeanSquaredError() 
 
 # 4. Set up the loss and training loop and iterate!
-def train(model, opt, original):
-  with tf.GradientTape() as tape:
-    pred = model(original, True)
-    loss_train = loss_object(pred, original)
-  gradients = tape.gradient(loss_train, model.trainable_variables)
-  opt.apply_gradients(zip(gradients, model.trainable_variables))
+def train_model(model, opt, original):
+    with tf.GradientTape() as tape:
+        pred = model(original, True)
+        loss_train = loss_object(pred, original)
+    gradients = tape.gradient(loss_train, model.trainable_variables)
+    opt.apply_gradients(zip(gradients, model.trainable_variables))
 
-for x in range(1,5):
-    for dropout in np.linspace(0.1, 0.3, 3):    
-        autoencoder = Autoencoder(x, dropout)
-        for epoch in range(epochs):
-            for step, batch_features in enumerate(X_train):
-                train(autoencoder, opt, batch_features)
-            if epoch == epochs -1:
-                total = tf.Variable(0.0)
-                mse = tf.Variable(0.0)
+now = time.time()
+
+for x in range(1,2):
+    for dropout in np.linspace(0.1, 0.1, 1):
+        results = []
+        
+        kf = KFold(n_splits=10)
+        for train, test in kf.split(X):
+            X_train = X[train, :, :]
+            X_test = X[test, :, :]
+            
+            X_train = tf.data.Dataset.from_tensor_slices(tf.cast(X_train, tf.float32)).batch(32)
+            X_test = tf.data.Dataset.from_tensor_slices(tf.cast(X_test, tf.float32)).batch(32)
+            autoencoder = Autoencoder(x, dropout)
+            
+            for epoch in range(epochs):
                 for step, batch_features in enumerate(X_train):
-                    total.assign_add(batch_features.shape[0])
-                    mse.assign_add(loss_object(autoencoder(batch_features, False), batch_features) * batch_features.shape[0])
-                #print('MSE is ' + str(tf.math.divide(mse, total)))
-                print('Finished Autoencoder model with ' + str(x) + ' hidden layers, dropout of: ' + str(dropout) + ' and mean MSE of ' + str(tf.math.divide(mse, total).numpy()))
+                    train_model(autoencoder, opt, batch_features)
+                if epoch == epochs -1:
+                    total = tf.Variable(0.0)
+                    mse = tf.Variable(0.0)
+                    for step, batch_features in enumerate(X_test):
+                        total.assign_add(batch_features.shape[0])
+                        mse.assign_add(loss_object(autoencoder(batch_features, False), batch_features) * batch_features.shape[0])
+                    
+                    results.append(tf.math.divide(mse, total).numpy())
+                print(epoch)
+        print('Finished Autoencoder model with ' + str(x) + ' hidden layers, dropout of: ' + str(dropout) + ' and mean MSE of ' + str(np.round(np.mean(results),6)) + ' and std MSE of ' + str(np.round(np.std(results), 6)))
+
+elapsed = time.time() - now
+print('One hyperparameter setting took' + str(np.round(elapsed,1)) + ' seconds')
         
 # 5. Import the Supervisor model 
 from models.Supervisor import Supervisor
