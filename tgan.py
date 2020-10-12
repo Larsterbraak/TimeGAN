@@ -51,7 +51,7 @@ from metrics import load_models, image_grid
 mirrored_strategy = tf.distribute.MirroredStrategy()
 
 def run(parameters, hparams, X_train, X_test, 
-        load=False, load_epochs=0, load_log_dir=""):
+        load=False, load_epochs=150, load_log_dir=""):
     
     # Network Parameters
     hidden_dim   = parameters['hidden_dim']
@@ -80,7 +80,7 @@ def run(parameters, hparams, X_train, X_test,
     summary_writer_lower_bound = tf.summary.create_file_writer(log_dir + '/lower_bound')
     
     if load:
-        embedder_model, recovery_model, supervisor_model, generator_model, discriminator_model = load_models(load_epochs)
+        embedder_model, recovery_model, supervisor_model, generator_model, discriminator_model = load_models(load_epochs, hparams, hidden_dim)
     else:
         with mirrored_strategy.scope():
             # Create an instance of all neural networks models (All LSTM)
@@ -89,7 +89,7 @@ def run(parameters, hparams, X_train, X_test,
             supervisor_model = Supervisor('logs/supervisor', hparams, hidden_dim)
             generator_model = Generator('logs/generator', hparams, hidden_dim)
             discriminator_model = Discriminator('logs/TimeGAN', hparams, hidden_dim)
-        
+            
     r_loss_train = tf.keras.metrics.Mean(name='r_loss_train') # Step 1 metrics 
     r_loss_test = tf.keras.metrics.Mean(name='r_loss_test')
     

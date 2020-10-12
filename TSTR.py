@@ -22,7 +22,6 @@ Outputs
 """
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 def value_at_risk(X_hat, percentile = 99, upper = True):
     VaR = []
