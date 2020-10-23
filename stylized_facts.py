@@ -52,7 +52,7 @@ def spikiness(data):
 def hurst(data):
     '''Calculate the Hurst exponent.'''
     # Define the lags over which we check the autocorrelation
-    lags = range(2, 100)
+    lags = range(2, 20)
     
     # calculate standard deviation of differenced series using various lags
     tau = [np.sqrt(np.std(np.subtract(data[lag:], data[:-lag]))) for lag in lags]
@@ -86,11 +86,11 @@ def descriptives_over_time():
 def descriptives(data):
     '''Calculate the descriptives of the interest rate returns.'''
     
-    count = len(data)
+    #count = len(data)
     variance = np.var(data)
     skewness = scipy.stats.skew(data)
     kurtosis = scipy.stats.kurtosis(data)
-    hurst_exp = hurst(data)
+    #hurst_exp = hurst(data)
     p_val_adf = adfuller(data)[1]
 
     strength_measures = strength(data)
@@ -99,16 +99,17 @@ def descriptives(data):
     
     spike = spikiness(data)
 
-    print('\n Count:', count,
-          '\n Variance:', np.round(variance, 5),
-          '\n Skewness:', np.round(skewness, 5), 
-          '\n Kurtosis:', np.round(kurtosis, 5),
-          '\n Hurst exponents:', np.round(hurst_exp, 5),
-          '\n p-value ADF', np.round(p_val_adf, 5),
-          '\n Strength trend', np.round(strength_trend, 5),
-          '\n Strength season', np.round(strength_season, 5), 
-          '\n Spikiness', spike)
-    return 'Done'
+    # print('\n Count:', count,
+    #       '\n Variance:', np.round(variance, 5),
+    #       '\n Skewness:', np.round(skewness, 5), 
+    #       '\n Kurtosis:', np.round(kurtosis, 5),
+    #       '\n Hurst exponents:', np.round(hurst_exp, 5),
+    #       '\n p-value ADF', np.round(p_val_adf, 5),
+    #       '\n Strength trend', np.round(strength_trend, 5),
+    #       '\n Strength season', np.round(strength_season, 5), 
+    #       '\n Spikiness', spike)
+    return [variance, skewness, kurtosis, p_val_adf, 
+            strength_trend, strength_season, spike]
 
 # =============================================================================
 # Calculate the interest rate returns and provide the descriptives
@@ -135,11 +136,11 @@ df_pre_ester = df_pre_ester.iloc[1:, :]
 df_ester.ESTER[1:] = df_ester.ESTER.pct_change()[1:]
 df_ester = df_ester.iloc[1:, :]
 
-descriptives(df.EONIA.values)
-descriptives(df.EONIA.values[4662:5310])
-descriptives(df_eonia_ester.ECB_mapping.values)
-descriptives(df_pre_ester.PRE_ESTER.values)    
-descriptives(df_ester.ESTER.values)
+#descriptives(df.EONIA.values)
+#descriptives(df.EONIA.values[4662:5310])
+#descriptives(df_eonia_ester.ECB_mapping.values)
+#descriptives(df_pre_ester.PRE_ESTER.values)    
+#descriptives(df_ester.ESTER.values)
 
 #test = descriptives_over_time(df_pre_ester.PRE_ESTER.values)
 

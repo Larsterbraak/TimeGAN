@@ -21,10 +21,10 @@ Outputs
 - Preprocessed time series of European short rates
 """
 
-#import os
+import os
 
 # Change to the needed working directory
-#os.chdir('C://Users/s157148/Documents/Github/TimeGAN')
+os.chdir('C://Users/s157148/Documents/Github/TimeGAN')
 
 # Necessary packages
 import pandas as pd
@@ -44,10 +44,10 @@ def create_dataset(name='EONIA', normalization='outliers',
         df = df.iloc[1:, :]
     elif name == 'pre-ESTER':
         df = pd.read_csv('data/pre_ESTER.csv', sep = ';')
-        df = df.iloc[:, 1:] # Remove the Date variable from the dataset
         df = df.iloc[::-1] # Make dataset chronological
+        df = df.iloc[:, 1:] # Remove the Date variable from the dataset
         # Make daily differencing
-        df.iloc[1:,[1,2,4]] = np.diff(df[['R25', 'R75', 'WT']], axis =0)
+        df.iloc[1:,[1,2,4]] = np.diff(df[['R25', 'R75', 'WT']], axis=0)
         df = df.iloc[1:]
     elif name == 'ESTER':
         df = pd.read_csv("data/ESTER.csv", sep=";")
@@ -65,6 +65,17 @@ def create_dataset(name='EONIA', normalization='outliers',
     if not multidimensional and (name == 'pre-ESTER' or name =='ESTER'):
         df = np.array(df.WT)
     if normalization == 'min-max':
+        if multidimensional and (name == 'pre-ESTER'):
+            df_master = pd.read_csv("data/Master_EONIA.csv", sep=";")
+            df_master = df_master.iloc[:, 1:] # Remove the Date variable from the dataset
+            df_master.EONIA[1:] = np.diff(df_master.EONIA)
+            df_master = df_master.iloc[1:, :]
+            scaler = preprocessing.MinMaxScaler().fit(df_master)
+            
+            # 3404 corresponds to the starting date of 15-03-2017
+            df_master.iloc[3405:df_master.shape[0], 8] = df.WT[:437].values
+            df = scaler.transform(df_master.iloc[3405:df_master.shape[0], :])
+            del df_master, scaler
         if multidimensional:
             df = preprocessing.MinMaxScaler().fit_transform(df)
     elif normalization == 'outliers':
@@ -78,6 +89,7 @@ def create_dataset(name='EONIA', normalization='outliers',
     for i in range(0, len(df) - seq_length):
         _df = df[i : i + seq_length]
         dataX.append(_df)
+    
     
     if normalization == 'none':
         return dataX
@@ -94,6 +106,10 @@ def create_dataset(name='EONIA', normalization='outliers',
         outputX = np.reshape(dataX, newshape=(len(dataX), 
                                                 seq_length, 
                                                 1))
+    elif(name == 'pre-ESTER'):
+        outputX = np.reshape(dataX, newshape=(len(dataX),
+                                              seq_length,
+                                              df.shape[1]))
     else:
         # Reshape to be used by Tensorflow    
         outputX = np.reshape(outputX, newshape=(len(outputX), 
@@ -108,6 +124,8 @@ def create_dataset(name='EONIA', normalization='outliers',
         X_train = tf.data.Dataset.from_tensor_slices(tf.cast(X_train, tf.float32)).batch(32*4)
         X_test = tf.data.Dataset.from_tensor_slices(tf.cast(X_test, tf.float32)).batch(32*4)
         return X_train, X_test
+    elif(name=='pre-ESTER'):
+        return outputX
     else:
         return idx, outputX
 
