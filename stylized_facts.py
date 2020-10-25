@@ -127,7 +127,6 @@ df_eonia_ester = df_eonia_ester.iloc[1:,]
 df.EONIA[1:] = df.EONIA.pct_change()[1:]
 df = df.iloc[1:, :]
 
-
 # df_pre_ester.PRE_ESTER[1:] = np.diff(df_pre_ester.PRE_ESTER)
 df_pre_ester.PRE_ESTER[1:] = df_pre_ester.PRE_ESTER.pct_change()[1:]
 df_pre_ester = df_pre_ester.iloc[1:, :] 
