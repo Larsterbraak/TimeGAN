@@ -3,7 +3,7 @@ MSc Thesis Quantitative Finance
 Title: Interest rate risk due to EONIA-ESTER transition
 Author: Lars ter Braak (larsterbraak@gmail.com)
 
-Last updated: June 11th 2020
+Last updated: October 25th 2020
 Code Author: Lars ter Braak (larsterbraak@gmail.com)
 
 -----------------------------
@@ -14,12 +14,13 @@ Outputs
 
 """
 
-import numpy as np
 import os
+os.chdir('C:/Users/s157148/Documents/GitHub/TimeGAN')
+
+import numpy as np
 import tensorflow as tf
 import pandas as pd
 
-os.chdir('C:/Users/s157148/Documents/GitHub/TimeGAN')
 
 # 1. Create visualization of data
 #from plotting import plot
@@ -61,7 +62,7 @@ run(parameters, hparams, X_train, X_test,
 
 # Calculate prob of ESTER for TimeGAN calibrated on EONIA 
 from metrics import ester_classifier
-probs_ester = ester_classifier(load_epochs=9000, hparams=[], hidden_dim=4)    
+probs_ester = ester_classifier(load_epochs=8250, hparams=[], hidden_dim=4)    
 
 from stylized_facts import descriptives_over_time
 sf_over_time = descriptives_over_time()
@@ -69,7 +70,7 @@ sf_over_time = descriptives_over_time()
 # Check the correlation matrix 
 XY = pd.DataFrame(sf_over_time)
 XY.columns = ['V', 'S', 'K', 'H', 'A', 'FT', 'FS', 'SP']
-XY['P'] = pd.DataFrame(probs_ester[148:])
+XY['r'] = pd.DataFrame(probs_ester[148:])
 import seaborn as sns
 corr = XY.corr()
 ax = sns.heatmap(
@@ -92,56 +93,6 @@ model = sm.OLS(probs_ester[148:], sf_over_time)
 results = model.fit()
 print(results.summary())
 print(results.summary().as_latex())
-
-# # =============================================================================
-# # Provide a way to adjust the latent space to account for the difference in ESTER and EONIA
-# # =============================================================================
-
-# # Still not done
-    
-# # =============================================================================
-# # Create a HParams dashboard for hyper parameter tuning
-# # =============================================================================
-
-# from tensorboard.plugins.hparams import api as hp
-
-# HP_LR = hp.HParam('learning_rate', hp.Discrete([0.0001, 0.001, 0.01]))
-# HP_Wasserstein = hp.HParam('Wasserstein_loss', hp.Discrete([True, False]))
-# HP_Positive_label_smoothing = hp.HParam('Positive_label_smoothing', hp.Discrete([True, False]))
-# HP_Feature_matching = hp.HParam('Feature_matching', hp.Discrete([True, False]))
-# HP_T = hp.HParam('T', hp.Discrete([5, 20, 30]))
-# # Also look for the impact of eta, lambda and kappa on the the performance
-
-# METRIC_EXCEEDANCES_UPPER = 'exceedances_upper'
-# METRIC_EXCEEDANCES_LOWER = 'exceedances_lower'
-# METRIC_ACCURACY_FAKE = 'accuracy_fake'
-# METRIC_ACCURACY_REAL = 'accuracy_real'
-
-# with tf.summary.create_file_writer('logs/hparam_tuning').as_default():
-#     hp.hparams_config(
-#       hparams=[HP_LR, HP_Wasserstein, HP_Positive_label_smoothing, HP_Feature_matching, HP_T],
-#       metrics=[hp.Metric(METRIC_EXCEEDANCES_UPPER, display_name='exceedances_upper'),
-#                hp.Metric(METRIC_EXCEEDANCES_LOWER, display_name='exceedances_lower'),
-#                hp.Metric(METRIC_ACCURACY_FAKE, display_name='accuracy_fake'),
-#                hp.Metric(METRIC_ACCURACY_REAL, display_name='accuracy_real')]
-#     )
-
-#     for lr in HP_LR.domain.values:
-#         for ws in HP_Wasserstein.domain.values:
-#             for pls in HP_Positive_label_smoothing.domain.values:
-#                 for fm in HP_Feature_matching.domain.values:
-#                     for t in HP_T.domain.values:
-#                         hparams = {
-#                             HP_LR: lr,
-#                             HP_Wasserstein: ws,
-#                             HP_Positive_label_smoothing: pls,
-#                             HP_Feature_matching: fm,
-#                             HP_T: t
-#                             }
-#                         print({h.name: hparams[h] for h in hparams})
-#                         hp.hparams(hparams) # Record values used in trial
-                        
-#                         run(parameters, hparams, X_train, X_test, load = False) # run model for 2 epochs
 
 # # =============================================================================
 # # Use the projector mode in Tensorboard for t-SNE and PCA visualizations

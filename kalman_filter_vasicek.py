@@ -13,7 +13,6 @@ Inputs
 Short rate time series
 
 Outputs
-VaR(99%) based on Kalman Filter estimation of 1-factor Vasicek for 20 day prediction
 VaR(99%) based on Linear Regression estimation of 1-factor Vasicek for 20 day prediction
 """
 
@@ -54,7 +53,7 @@ def VaR(r_0, data, time, percentile=0.99, upward=True):
     else:
         return np.ravel(expectation - np.sqrt(variance) * tdistr.ppf(percentile, t_df))   
 
-# 1. Import the EONIA data for training error
+# 1. Import the EONIA data for validation error
 data = pd.read_csv("data/EONIA.csv", sep=";")
 data = np.array(data.iloc[:775,2])[::-1] # Filter for only EONIA 
 
@@ -84,10 +83,10 @@ for i in range(250):
 # 4.1 We simulate using the Euler discritization
 n = 250 # simulate n times
 t = 20 # simulate T days
-k, mu, sigma = model_calibration(data[20:270]) # calibrate the model 
+k, mu, sigma = model_calibration(data[:250]) # calibrate the model 
 
 r = np.zeros(shape=(t+1,n))
-r[0,:] = data[270]
+r[0,:] = data[250]
 dr = np.zeros(shape=(t+1,n))
 for j in range(n):
     for i in range(1,t+1):

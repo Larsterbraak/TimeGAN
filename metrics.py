@@ -36,6 +36,7 @@ from training import RandomGenerator
 import matplotlib.pyplot as plt
 import pandas as pd
 from scipy import stats
+import datetime
 
 def load_models(epoch, hparams, hidden_dim):        
     from models.Discriminator import Discriminator
@@ -224,25 +225,34 @@ def ester_classifier(load_epochs, hparams, hidden_dim):
     for i in range(len(probs)):
         probs_mean[i] = np.mean(probs[np.max([0, i-20]):np.min([i+20, len(probs)])])
     
+    check = pd.read_csv("data/pre_ESTER.csv", sep=";")
+    check = check[::-1]
+    dates = check.iloc[:417, 0]
+    
+    dates_EONIA = np.ravel(dates.values).astype(str)
+    dates_EONIA = [datetime.datetime.strptime(d,"%d-%m-%Y").date()
+                       for d in dates_EONIA]
     
     df = pd.read_csv("data/pre_ESTER.csv", sep=";").WT
     df = df.iloc[::-1] # Make dataset chronological for plotting
     df = df.iloc[:417]
     
-    plt.figure(figsize=(30,10), dpi=600)
-    plt.plot(df.values, label = 'pre- ‎€STER')
+    plt.figure(figsize=(30,10), dpi=200)
+    plt.plot_date(dates_EONIA, df.values, 'b-',  
+                  color = '#0C5DA5', label = 'pre- ‎€STER')
     
     new = probs_mean / 5.1 - 0.55
     
     from matplotlib import rcParams
-    #rcParams['axes.titlepad']=20
-    #rcParams['ytick.labelsize']=24
-    #rcParams['xtick.labelsize']=16
+    rcParams['axes.titlepad']=20
+    rcParams['ytick.labelsize']=24
+    rcParams['xtick.labelsize']=16
     
     # More efficient and elegant pyplot
     plt.style.use(['science', 'no-latex'])
     
-    plt.plot(new, label = 'Realness score pre- ‎€STER')
+    plt.plot_date(dates_EONIA, new, 'b-', 
+                  color = '#00B945',  label = 'Realness score pre- ‎€STER')
     plt.title(r'Realness score pre- ‎€STER', fontsize=30, fontweight='roman')
     plt.ylabel(r'€STER', fontsize=26, fontweight='roman', labelpad=20)
     plt.xlabel(r'pre-ESTER days', fontsize=26, fontweight='roman', labelpad=20)
