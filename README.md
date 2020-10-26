@@ -18,7 +18,7 @@ MSc Thesis [Interest rate risk simulation using TimeGAN after EONIA-€STER tran
 
 ###### 1-day, 10-day, and 20-day VaR(99%) estimates for TimeGAN with PLS+FM during validation and test dataset.
 
-![](Figures/1_day_VaR_PLS_FM.gif = 10x40) ![](Figures/10_day_VaR_PLS_FM.gif = 50x20) ![](Figures/20_day_VaR_PLS_FM.gif = 100x60)
+![](Figures/1_day_VaR_PLS_FM.gif width="30") ![](Figures/10_day_VaR_PLS_FM.gif width="20") ![](Figures/20_day_VaR_PLS_FM.gif width="10")
 
 ## Reproducing paper
 
