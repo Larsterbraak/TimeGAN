@@ -86,11 +86,11 @@ def descriptives_over_time():
 def descriptives(data):
     '''Calculate the descriptives of the interest rate returns.'''
     
-    #count = len(data)
+    count = len(data)
     variance = np.var(data)
     skewness = scipy.stats.skew(data)
     kurtosis = scipy.stats.kurtosis(data)
-    #hurst_exp = hurst(data)
+    hurst_exp = hurst(data)
     p_val_adf = adfuller(data)[1]
 
     strength_measures = strength(data)
@@ -99,15 +99,15 @@ def descriptives(data):
     
     spike = spikiness(data)
 
-    # print('\n Count:', count,
-    #       '\n Variance:', np.round(variance, 5),
-    #       '\n Skewness:', np.round(skewness, 5), 
-    #       '\n Kurtosis:', np.round(kurtosis, 5),
-    #       '\n Hurst exponents:', np.round(hurst_exp, 5),
-    #       '\n p-value ADF', np.round(p_val_adf, 5),
-    #       '\n Strength trend', np.round(strength_trend, 5),
-    #       '\n Strength season', np.round(strength_season, 5), 
-    #       '\n Spikiness', spike)
+    print('\n Count:', count,
+          '\n Variance:', np.round(variance, 5),
+          '\n Skewness:', np.round(skewness, 5), 
+          '\n Kurtosis:', np.round(kurtosis, 5),
+          '\n Hurst exponents:', np.round(hurst_exp, 5),
+          '\n p-value ADF', np.round(p_val_adf, 5),
+          '\n Strength trend', np.round(strength_trend, 5),
+          '\n Strength season', np.round(strength_season, 5), 
+          '\n Spikiness', spike)
     return [variance, skewness, kurtosis, p_val_adf, 
             strength_trend, strength_season, spike]
 
@@ -122,24 +122,24 @@ df_eonia_ester.ECB_mapping = df_eonia_ester.ECB_mapping.values - 0.085
 df_eonia_ester.ECB_mapping[1:] = df_eonia_ester.ECB_mapping.pct_change()[1:]
 df_eonia_ester = df_eonia_ester.iloc[1:,] 
 
-# # Calculate the daily differences
-# df.EONIA[1:] = np.diff(df.EONIA)
-df.EONIA[1:] = df.EONIA.pct_change()[1:]
+# Calculate the daily differences
+df.EONIA[1:] = np.diff(df.EONIA)
+#df.EONIA[1:] = df.EONIA.pct_change()[1:]
 df = df.iloc[1:, :]
 
-# df_pre_ester.PRE_ESTER[1:] = np.diff(df_pre_ester.PRE_ESTER)
-df_pre_ester.PRE_ESTER[1:] = df_pre_ester.PRE_ESTER.pct_change()[1:]
+df_pre_ester.PRE_ESTER[1:] = np.diff(df_pre_ester.PRE_ESTER)
+#df_pre_ester.PRE_ESTER[1:] = df_pre_ester.PRE_ESTER.pct_change()[1:]
 df_pre_ester = df_pre_ester.iloc[1:, :] 
 
-# df_ester.ESTER[1:] = np.diff(df_ester.ESTER)
-df_ester.ESTER[1:] = df_ester.ESTER.pct_change()[1:]
+df_ester.ESTER[1:] = np.diff(df_ester.ESTER)
+#df_ester.ESTER[1:] = df_ester.ESTER.pct_change()[1:]
 df_ester = df_ester.iloc[1:, :]
 
-#descriptives(df.EONIA.values)
-#descriptives(df.EONIA.values[4662:5310])
-#descriptives(df_eonia_ester.ECB_mapping.values)
-#descriptives(df_pre_ester.PRE_ESTER.values)    
-#descriptives(df_ester.ESTER.values)
+descriptives(df.EONIA.values)
+descriptives(df.EONIA.values[4662:5310])
+descriptives(df_eonia_ester.ECB_mapping.values)
+descriptives(df_pre_ester.PRE_ESTER.values)    
+descriptives(df_ester.ESTER.values)
 
 #test = descriptives_over_time(df_pre_ester.PRE_ESTER.values)
 

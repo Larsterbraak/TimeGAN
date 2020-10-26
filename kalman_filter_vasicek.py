@@ -63,8 +63,8 @@ downward = 0
 
 # Loop over 250 trading days in the training data set
 for i in range(250):
-    upward += data[i+270] > VaR(data[i+269], data[i:269+i], 1, percentile=0.99, upward=True)
-    downward += data[i+270] < VaR(data[i+269], data[i:269+i], 1, percentile=0.99, upward=False)
+    upward += data[i+370] > VaR(data[i+250], data[i:250+i], 120, percentile=0.99, upward=True)
+    downward += data[i+370] < VaR(data[i+250], data[i:250+i], 120, percentile=0.99, upward=False)
 
 # 1. Import the EONIA data for test error
 data = pd.read_csv("data/EONIA.csv", sep=";")
