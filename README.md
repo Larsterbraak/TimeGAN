@@ -3,8 +3,8 @@
 * [Results](#results)
 * [Web application](#web-application)
 * [Reproducing paper](#reproducing-paper)
-* [Technologies](#technologies)
 * [Getting started](#getting-started)
+* [Technologies](#technologies)
 * [Inspiration](#inspiration)
 
 ## General info
@@ -27,10 +27,10 @@ I made a [web application](https://timegan-short-rates.herokuapp.com/) for the T
 
 ## Reproducing paper
 
-* 4.0 Training TimeGAN
+* 4 Training TimeGAN
   * For **CPU** version of TimeGAN, see tgan.py  
   * For **Multi-GPU** version of TimeGAN, see LISA/tgan.py 
-* 5.0 Data 
+* 5 Data 
   * To produce Figure 5 until 9, see plotting.py  
   * To produce Table 3, see stylized_facts.py
 * 7.1 Model selection
@@ -42,14 +42,6 @@ I made a [web application](https://timegan-short-rates.herokuapp.com/) for the T
   * To produce Figures 24, 36 until 43 see main.py
 * 7.4 ECB's proposed mapping
   * To produce Figures 26 until 28, see metrics.py, stylized_facts.py and main.py
-
-## Technologies
-
-Project is created with:
-* Tensorflow version: 2.2
-* Python version: 3.6.0
-* Tensorboard version: 2.2
-* Plotly Dash 3.7
 
 ## Getting started
 
@@ -63,6 +55,14 @@ $ python tgan.py
 >> [step: 2, g_loss_u_e: 0.019, g_loss_s: 0.022, g_loss_s_embedder: 0.031, e_loss_t0: 0.314, d_loss: 0.029]
 ...
 ```
+
+## Technologies
+
+Project is created with:
+* Tensorflow version: 2.2
+* Python version: 3.6.0
+* Tensorboard version: 2.2
+* Plotly Dash 3.7
 
 ## Inspiration
 
