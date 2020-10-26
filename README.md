@@ -40,7 +40,7 @@ Welcome to my MSc Thesis titled ["Interest rate risk simulation using TimeGAN af
 
 ## Web application
 
-I made a [web application](https://timegan-short-rates.herokuapp.com/) for the Thesis. Here you can check out the influence of different hyperparameters and generate your own EONIA or €STER simulations. **Note that it is still under construction**
+Would like to see how the model works? This [web application](https://timegan-short-rates.herokuapp.com/) shows the influence of different hyperparameters and allows you to generate your own EONIA or €STER simulations. **Note that it is still under construction**
 
 ## Getting started
 
