@@ -29,8 +29,8 @@ I made a [web application](https://timegan-short-rates.herokuapp.com/) for the T
 
 ##### 4. Training TimeGAN
 
-For _CPU_ version of TimeGAN, see tgan.py  
-For _Multi-GPU_ version of TimeGAN, see LISA/tgan.py 
+For **CPU** version of TimeGAN, see tgan.py  
+For **Multi-GPU** version of TimeGAN, see LISA/tgan.py 
 
 ##### 5. Data 
 
