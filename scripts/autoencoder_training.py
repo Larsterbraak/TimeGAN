@@ -4,16 +4,16 @@ Title: Interest rate risk simulation using TimeGAN
        after the EONIA-€STER transition
 Author: Lars ter Braak (larsterbraak@gmail.com)
 
-Last updated: August 19th 2020
+Last updated: October 26th 2020
 Code Author: Lars ter Braak (larsterbraak@gmail.com)
 
 -----------------------------
 
 Inputs
-Data that needs dimension reduction
+- Multidimensional time series
 
 Outputs
-Fully trained autoencoder based on the data
+- Fully trained autoencoder based on the multidimensional time series
 """
 
 import os
