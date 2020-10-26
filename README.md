@@ -28,20 +28,20 @@ I made a [web application](https://timegan-short-rates.herokuapp.com/) for the T
 ## Reproducing paper
 
 * 4. Training TimeGAN
- * For **CPU** version of TimeGAN, see tgan.py  
- * For **Multi-GPU** version of TimeGAN, see LISA/tgan.py 
+  * For **CPU** version of TimeGAN, see tgan.py  
+  * For **Multi-GPU** version of TimeGAN, see LISA/tgan.py 
 * 5. Data 
- * To produce Figure 5 until 9, see plotting.py  
- * To produce Table 3, see stylized_facts.py
+  * To produce Figure 5 until 9, see plotting.py  
+  * To produce Table 3, see stylized_facts.py
 * 7.1 Model selection
- * To produce Figure 11 until 14, see autoencoder_training.py and hyper_and_importance.py
+  * To produce Figure 11 until 14, see autoencoder_training.py and hyper_and_importance.py
 * 7.2 Coverage test
- * To produce Table 4, see TimeGAN_kupiec.py, kalman_filter_vasicek.py, and variance_covariance.py 
+  * To produce Table 4, see TimeGAN_kupiec.py, kalman_filter_vasicek.py, and variance_covariance.py 
 * 7.3 Diversity of simulations
- * To produce Figure 22 and 23, see TimeGAN_kupiec.py
- * To produce Figures 24, 36 until 43 see main.py
+  * To produce Figure 22 and 23, see TimeGAN_kupiec.py
+  * To produce Figures 24, 36 until 43 see main.py
 * 7.4 ECB's proposed mapping
- * To produce Figures XX until XX, see blabla.py
+  * To produce Figures XX until XX, see blabla.py
 
 ## Technologies
 
