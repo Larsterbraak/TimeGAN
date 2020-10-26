@@ -21,10 +21,13 @@ import numpy as np
 import tensorflow as tf
 import pandas as pd
 
+# 1.1 Create visualizations of the data
+from plotting import plot
+plot(hist=True, history=True, pre_ester=True, spreads=True, inf_gdp=True)
 
-# 1. Create visualization of data
-#from plotting import plot
-#plot(hist = True, history = True, pre_ester = True)
+# 1.2 Check the stylized facts of the data
+#from stylized_facts import descriptives_over_time
+#descriptives_over_time()
 
 # 2. Data loading
 from data_loading import create_dataset
