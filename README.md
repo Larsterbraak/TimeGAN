@@ -3,7 +3,7 @@
 * [Results](#results)
 * [Reproducing paper](#reproducing-paper)
 * [Technologies](#technologies)
-* [Setup](#setup)
+* [Getting started](#getting-started)
 * [Inspiration](#inspiration)
 
 ## General info
@@ -49,13 +49,14 @@ Project is created with:
 * Tensorboard version: 2.2
 * Plotly Dash 3.7
 
-## Setup
+## Getting started
 
 To run this project, install it locally using npm:
 
 ```
 $ cd ../TimeGAN
-$ npm install tgan.py 
+$ npm install tgan.py
+$ python tgan.py
 ```
 
 ## Inspiration
