@@ -14,7 +14,7 @@ MSc Thesis [Interest rate risk simulation using TimeGAN after EONIA-€STER tran
 
 Here you see the GIF for the T-VaR(99%) estimate for regular TimeGAN:
 
-![](Figures/Normal_TimeGAN_T_VaR.gif)
+![](Figures/Normal_TimeGAN_T_VaR.gif) ![](Figures/PLS_FM_TimeGAN_T_VaR.gif)
 
 Here you see the GIF for the T-VaR(99%) estimate for TimeGAN with Feature Matching + Positive Label Smoothing:
 
