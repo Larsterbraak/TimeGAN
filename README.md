@@ -23,14 +23,14 @@ MSc Thesis [Interest rate risk simulation using TimeGAN after EONIA-€STER tran
 
 ## Web application
 
-I made a [web application](https://timegan-short-rates.herokuapp.com/) for the Thesis. Here you can check out the influence of different hyperparameters and generate your own EONIA or €STER simulations. _Note that it is still under construction_
+I made a [web application](https://timegan-short-rates.herokuapp.com/) for the Thesis. Here you can check out the influence of different hyperparameters and generate your own EONIA or €STER simulations. **Note that it is still under construction**
 
 ## Reproducing paper
 
-* 4. Training TimeGAN
+* 4.0 Training TimeGAN
   * For **CPU** version of TimeGAN, see tgan.py  
   * For **Multi-GPU** version of TimeGAN, see LISA/tgan.py 
-* 5. Data 
+* 5.0 Data 
   * To produce Figure 5 until 9, see plotting.py  
   * To produce Table 3, see stylized_facts.py
 * 7.1 Model selection
@@ -41,7 +41,7 @@ I made a [web application](https://timegan-short-rates.herokuapp.com/) for the T
   * To produce Figure 22 and 23, see TimeGAN_kupiec.py
   * To produce Figures 24, 36 until 43 see main.py
 * 7.4 ECB's proposed mapping
-  * To produce Figures XX until XX, see blabla.py
+  * To produce Figures 26 until 28, see metrics.py, stylized_facts.py and main.py
 
 ## Technologies
 
@@ -59,6 +59,7 @@ To run this project, install it locally using npm:
 $ cd ../TimeGAN
 $ npm install tgan.py
 $ python tgan.py
+[g_loss_u_e: 0.018, g_loss_s: 0.023, g_loss_s_embedder: 0.021, e_loss_t0: 0.312, d_loss: 0.014]
 ```
 
 ## Inspiration
