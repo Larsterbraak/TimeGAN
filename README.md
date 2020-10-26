@@ -1,3 +1,15 @@
+## Introduction
+
+Welcome to the Github page of the MSc Thesis [Interest rate risk simulation using TimeGAN after EONIA-€STER transition using a macro-finance temporal and latent representation based Generative Adversarial Network][Thesis_Lars_ter_Braak_v1.0.] commissioned by the Erasmus University Rotterdam for the completion of the MSc Quantitative Finance. In this study, I try to simulate short rate paths for the EONIA and based on the Discriminator in the TimeGAN evaluate the ECB's mapping of EONIA to €STER.
+
+
+If you want to run the TimeGAN:
+
+```python
+import tgan
+tgan()
+```
+
 Here you see the GIF for the T-VaR(99%) estimate for regular TimeGAN:
 
 ![](Figures/Normal_TimeGAN_T_VaR.gif)
