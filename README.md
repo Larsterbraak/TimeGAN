@@ -1,6 +1,7 @@
 ## Table of contents
 * [General info](#general-info)
 * [Results](#results)
+* [Web application](#web-application)
 * [Reproducing paper](#reproducing-paper)
 * [Technologies](#technologies)
 * [Getting started](#getting-started)
@@ -19,6 +20,10 @@ MSc Thesis [Interest rate risk simulation using TimeGAN after EONIA-€STER tran
 ###### 1-day, 10-day, and 20-day VaR(99%) estimates for TimeGAN with PLS+FM during validation and test dataset.
 
 ![](Figures/1_day_VaR_PLS_FM.gif) ![](Figures/10_day_VaR_PLS_FM.gif) ![](Figures/20_day_VaR_PLS_FM.gif)
+
+## Web application
+
+I host a [web application](https://timegan-short-rates.herokuapp.com/) for the TimeGAN model. Here you can check out the influence of different hyperparameters and generate your own EONIA or €STER simulations.
 
 ## Reproducing paper
 
