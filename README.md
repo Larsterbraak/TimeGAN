@@ -1,6 +1,6 @@
 # TimeGAN for short rates
 
-Welcome to my MSc Thesis titled "Interest rate risk simulation using TimeGAN after EONIA-€STER transition using a macro-finance temporal and latent representation based Generative Adversarial Network" for completion of the MSc Quantitative Finance at the Erasmus University Rotterdam. In this study, I try to simulate short rate paths for the EONIA and based on the Discriminator in the TimeGAN evaluate the ECB's mapping of EONIA to €STER.
+Welcome to my MSc Thesis titled "Interest rate risk simulation using TimeGAN after EONIA-€STER transition using a macro-finance temporal and latent representation based Generative Adversarial Network" for completion of the MSc Quantitative Finance at the Erasmus University Rotterdam. In this study, I try to simulate 1-day, 10-day, and 20-day short rate paths for the EONIA. Next to that, I evaluate the ECB's mapping of EONIA to €STER and check the applicability of TimeGAN to interest rate simulation of €STER.
 
 ## Table of contents
 * [Results](#results)
