@@ -8,15 +8,15 @@
 
 ## General info
 
-MSc Thesis [Interest rate risk simulation using TimeGAN after EONIA-€STER transition using a macro-finance temporal and latent representation based Generative Adversarial Network][Thesis_Lars_ter_Braak v1.0.pdf] for completion of the MSc Quantitative Finance. In this study, I try to simulate short rate paths for the EONIA and based on the Discriminator in the TimeGAN evaluate the ECB's mapping of EONIA to €STER.
+MSc Thesis [Interest rate risk simulation using TimeGAN after EONIA-€STER transition using a macro-finance temporal and latent representation based Generative Adversarial Network][Thesis_v1.0.pdf] for completion of the MSc Quantitative Finance. In this study, I try to simulate short rate paths for the EONIA and based on the Discriminator in the TimeGAN evaluate the ECB's mapping of EONIA to €STER.
 
 ## Results
 
-### T-VaR(99%) estimate for regular TimeGAN (left) and TimeGAN with PLS+FM (right) during the validation dataset
+###### T-VaR(99%) estimate for regular TimeGAN (left) and TimeGAN with PLS+FM (right) during the validation dataset
 
 ![](Figures/Normal_TimeGAN_T_VaR.gif) ![](Figures/PLS_FM_TimeGAN_T_VaR.gif)
 
-1-day, 10-day, and 20-day VaR(99%) estimates for TimeGAN with PLS+FM during validation and test dataset. The upper and lower exceedances and the diversity are based on the combination of the validation and test dataset.
+###### 1-day, 10-day, and 20-day VaR(99%) estimates for TimeGAN with PLS+FM during validation and test dataset.
 
 ![](Figures/1_day_VaR_PLS_FM.gif) ![](Figures/10_day_VaR_PLS_FM.gif) ![](Figures/20_day_VaR_PLS_FM.gif)
 
