@@ -30,7 +30,7 @@ Below is the visualization of the results presented in Table 4 and Table 5 for T
   * For **CPU** version of TimeGAN, see tgan.py  
   * For **Multi-GPU** version of TimeGAN, see LISA/tgan.py
 * Visualizatin of training with Tensorboard
-  - [regular TimeGAN](https://tensorboard.dev/experiment/rCW95sn7TNabbXJY4a1gew)
+  - [TimeGAN](https://tensorboard.dev/experiment/rCW95sn7TNabbXJY4a1gew)
   - [TimeGAN WGAN-GP](https://tensorboard.dev/experiment/vb0fQUArTyqoNIn8RTBgDA)
   - [TimeGAN PLS](https://tensorboard.dev/experiment/591rUg69R1GriM2cGjlP2Q)
   - [TimeGAN FM](https://tensorboard.dev/experiment/1fQKZdtRTPCED1GsEdpUOg)
