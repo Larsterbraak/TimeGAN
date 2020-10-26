@@ -12,6 +12,8 @@ Welcome to my MSc Thesis titled "Interest rate risk simulation using TimeGAN aft
 
 ## Results
 
+We shows visualizations of the result below.
+
 ###### T-VaR(99%) estimate for regular TimeGAN (left) and TimeGAN with PLS+FM (right) during the validation dataset.
 
 ![Normal TimeGAN T VaR](Figures/Normal_TimeGAN_T_VaR.gif) ![TimeGAN with PLS+FM T VaR](Figures/PLS_FM_TimeGAN_T_VaR.gif)
@@ -24,7 +26,8 @@ Welcome to my MSc Thesis titled "Interest rate risk simulation using TimeGAN aft
 
 * 4 Training TimeGAN
   * For **CPU** version of TimeGAN, see tgan.py  
-  * For **Multi-GPU** version of TimeGAN, see LISA/tgan.py 
+  * For **Multi-GPU** version of TimeGAN, see LISA/tgan.py
+  * Tensorboards: [regular TimeGAN](https://tensorboard.dev/experiment/rCW95sn7TNabbXJY4a1gew), [TimeGAN WGAN-GP](https://tensorboard.dev/experiment/vb0fQUArTyqoNIn8RTBgDA/), [TimeGAN PLS](https://tensorboard.dev/experiment/591rUg69R1GriM2cGjlP2Q), [TimeGAN FM](https://tensorboard.dev/experiment/1fQKZdtRTPCED1GsEdpUOg/), [TimeGAN PLS+FM](https://tensorboard.dev/experiment/kqNuBA7aR96gB07zuM7z5g).
 * 5 Data 
   * To produce Figure 5 until 9, see plotting.py  
   * To produce Table 3, see stylized_facts.py
