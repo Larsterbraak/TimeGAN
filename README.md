@@ -59,7 +59,9 @@ To run this project, install it locally using npm:
 $ cd ../TimeGAN
 $ npm install tgan.py
 $ python tgan.py
-[g_loss_u_e: 0.018, g_loss_s: 0.023, g_loss_s_embedder: 0.021, e_loss_t0: 0.312, d_loss: 0.014]
+>> [step: 1, g_loss_u_e: 0.018, g_loss_s: 0.023, g_loss_s_embedder: 0.021, e_loss_t0: 0.312, d_loss: 0.014]
+>> [step: 2, g_loss_u_e: 0.019, g_loss_s: 0.022, g_loss_s_embedder: 0.031, e_loss_t0: 0.314, d_loss: 0.029]
+...
 ```
 
 ## Inspiration
