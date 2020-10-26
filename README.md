@@ -55,6 +55,38 @@ $ python tgan.py
 ...
 ```
 
+To simulate 20-day short rate paths of EONIA or €STER, run the following code in python
+
+```python
+# Generic packages
+import pandas as pd
+from sklearn import preprocessing
+import tensorflow
+
+# TimeGAN specific functions
+from metrics import load_models
+from training import RandomGenerator
+
+# Import data and apply min-max transformation
+df = pd.read_csv("data/Master_EONIA.csv", sep=";")
+df = df.iloc[:, 1:] # Remove the Date variable from the dataset
+df.EONIA[1:] = np.diff(df.EONIA) # Make first difference for EONIA
+df = df.iloc[1:, :] # Remove the first value
+scaler = preprocessing.MinMaxScaler().fit(df) # Perform min-max transformation
+
+# Load the models, simulate scaled short rates and unscale
+load_epochs = 8250, hparams = [], hidden_dim = 4, T = 20, nr_simulations = N
+_, recovery_model, _, generator_model, _ = load_models(load_epochs, hparams, hidden_dim)
+Z_mb = RandomGenerator(N, [T, hidden_dim])
+samples = recovery_model(generator_model(Z_mb)).numpy()
+reshaped_data = samples.reshape((samples.shape[0]*samples.shape[1], 
+                                 samples.shape[2]))
+scaled_reshaped_data = scaler.inverse_transform(reshaped_data)
+simulations = scaled_reshaped_data.reshape(((samples.shape[0],
+                                             samples.shape[1], 
+                                             samples.shape[2])))    
+```
+
 ## Technologies
 
 Project is created with:
