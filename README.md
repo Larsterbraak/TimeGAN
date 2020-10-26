@@ -12,17 +12,13 @@ MSc Thesis [Interest rate risk simulation using TimeGAN after EONIA-€STER tran
 
 ## Results
 
-T-VaR(99%) estimate for regular TimeGAN and TimeGAN with Feature Matching + Positive Label Smoothing:
+### T-VaR(99%) estimate for regular TimeGAN (left) and TimeGAN with PLS+FM (right) during the validation dataset
 
 ![](Figures/Normal_TimeGAN_T_VaR.gif) ![](Figures/PLS_FM_TimeGAN_T_VaR.gif)
 
-Here you see the visualizations of 1-day, 10-day, and 20-day VaR(99%) estimates for TimeGAN with Feature Matching + Positive Label Smoothing during the validation and test dataset. The upper and lower exceedances and the diversity are based on the combination of the validation and test dataset.
+1-day, 10-day, and 20-day VaR(99%) estimates for TimeGAN with PLS+FM during validation and test dataset. The upper and lower exceedances and the diversity are based on the combination of the validation and test dataset.
 
-![](Figures/1_day_VaR_PLS_FM.gif)
-
-![](Figures/10_day_VaR_PLS_FM.gif)
-
-![](Figures/20_day_VaR_PLS_FM.gif)
+![](Figures/1_day_VaR_PLS_FM.gif) ![](Figures/10_day_VaR_PLS_FM.gif) ![](Figures/20_day_VaR_PLS_FM.gif)
 
 ## Reproducing paper
 
