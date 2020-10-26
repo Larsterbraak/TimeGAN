@@ -3,7 +3,7 @@
 * [Results](#results)
 * [Reproducing paper](#reproducing-paper)
 * [Technologies](#technologies)
-* [Setup](#setup)
+* [Getting started](#getting-started)
 * [Inspiration](#inspiration)
 
 ## General info
@@ -18,7 +18,7 @@ MSc Thesis [Interest rate risk simulation using TimeGAN after EONIA-€STER tran
 
 ###### 1-day, 10-day, and 20-day VaR(99%) estimates for TimeGAN with PLS+FM during validation and test dataset.
 
-![](Figures/1_day_VaR_PLS_FM.gif) ![](Figures/10_day_VaR_PLS_FM.gif) ![](Figures/20_day_VaR_PLS_FM.gif)
+![](Figures/1_day_VaR_PLS_FM.gif = 10x40) ![](Figures/10_day_VaR_PLS_FM.gif = 50x20) ![](Figures/20_day_VaR_PLS_FM.gif = 100x60)
 
 ## Reproducing paper
 
@@ -49,13 +49,14 @@ Project is created with:
 * Tensorboard version: 2.2
 * Plotly Dash 3.7
 
-## Setup
+## Getting started
 
 To run this project, install it locally using npm:
 
 ```
 $ cd ../TimeGAN
-$ npm install tgan.py 
+$ npm install tgan.py
+$ python tgan.py
 ```
 
 ## Inspiration
