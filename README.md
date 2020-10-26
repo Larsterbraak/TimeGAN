@@ -22,23 +22,23 @@ MSc Thesis [Interest rate risk simulation using TimeGAN after EONIA-€STER tran
 
 ## Reproducing paper
 
-# 4. Training TimeGAN
+##### 4. Training TimeGAN
 
-For CPU Tensorflow 2 version of TimeGAN, see tgan.py
-For Multi-GPU Tensorflow 2 version of TimeGAN, see LISA source code/tgan.py 
+For *CPU* version of TimeGAN, see tgan.py  
+For *Multi-GPU* version of TimeGAN, see LISA/tgan.py 
 
-# 5. Data 
+##### 5. Data 
 
-To produce Figure 5 to 9, see plotting.py
+To produce Figure 5 to 9, see plotting.py  
 To produce Table 3, see stylized_facts.py
 
-# 7.1 Model selection
+##### 7.1 Model selection
 
 To produce Figure 11 to 14, see autoencoder_training.py and hyper_and_importance.py
 
-# 7.2 Coverage test
+##### 7.2 Coverage test
 
-To produce Table 4, see TimeGAN_kupiec.py, kalman_filter_vasicek.py, and variance_covariance.py
+To produce Table 4, see TimeGAN_kupiec.py, kalman_filter_vasicek.py, and variance_covariance.py  
 All scripts are a bit entangled. Must get them more out of each other.
 
 ## Technologies
