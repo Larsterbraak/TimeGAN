@@ -1,19 +1,14 @@
 # TimeGAN for short rates
 
-Welcome!
+Welcome to my MSc Thesis titled ["Interest rate risk simulation using TimeGAN after EONIA-€STER transition using a macro-finance temporal and latent representation based Generative Adversarial Network"][Thesis_v1.0.pdf] for completion of the MSc Quantitative Finance. In this study, I try to simulate short rate paths for the EONIA and based on the Discriminator in the TimeGAN evaluate the ECB's mapping of EONIA to €STER.
 
 ## Table of contents
-* [General info](#general-info)
 * [Results](#results)
-* [Web application](#web-application)
 * [Reproducing paper](#reproducing-paper)
+* [Web application](#web-application)
 * [Getting started](#getting-started)
 * [Technologies](#technologies)
 * [Inspiration](#inspiration)
-
-## General info
-
-MSc Thesis [Interest rate risk simulation using TimeGAN after EONIA-€STER transition using a macro-finance temporal and latent representation based Generative Adversarial Network][Thesis_v1.0.pdf] for completion of the MSc Quantitative Finance. In this study, I try to simulate short rate paths for the EONIA and based on the Discriminator in the TimeGAN evaluate the ECB's mapping of EONIA to €STER.
 
 ## Results
 
@@ -24,10 +19,6 @@ MSc Thesis [Interest rate risk simulation using TimeGAN after EONIA-€STER tran
 ###### 1-day, 10-day, and 20-day VaR(99%) estimates for TimeGAN with PLS+FM during validation and test dataset.
 
 ![1 day VaR TimeGAN with PLS+FM](Figures/1_day_VaR_PLS_FM.gif) ![10 day VaR TimeGAN with PLS+FM](Figures/10_day_VaR_PLS_FM.gif) ![20 day VaR TimeGAN with PLS+FM](Figures/20_day_VaR_PLS_FM.gif)
-
-## Web application
-
-I made a [web application](https://timegan-short-rates.herokuapp.com/) for the Thesis. Here you can check out the influence of different hyperparameters and generate your own EONIA or €STER simulations. **Note that it is still under construction**
 
 ## Reproducing paper
 
@@ -47,12 +38,16 @@ I made a [web application](https://timegan-short-rates.herokuapp.com/) for the T
 * 7.4 ECB's proposed mapping
   * To produce Figures 26 until 28, see metrics.py, stylized_facts.py and main.py
 
+## Web application
+
+I made a [web application](https://timegan-short-rates.herokuapp.com/) for the Thesis. Here you can check out the influence of different hyperparameters and generate your own EONIA or €STER simulations. **Note that it is still under construction**
+
 ## Getting started
 
-To run this project, install it locally using npm and run tgan.py:
+To train the TimeGAN model on EONIA data, install the folder locally using npm and run tgan.py:
 
 ```
-$ cd ../TimeGAN
+$ cd ../TimeGAN-short-rates
 $ npm install tgan.py
 $ python tgan.py
 >> [step: 1, g_loss_u_e: 0.018, g_loss_s: 0.023, g_loss_s_embedder: 0.021, e_loss_t0: 0.312, d_loss: 0.014]
