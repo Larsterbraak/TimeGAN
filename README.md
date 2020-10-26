@@ -13,13 +13,13 @@ MSc Thesis [Interest rate risk simulation using TimeGAN after EONIA-€STER tran
 
 ## Results
 
-###### T-VaR(99%) estimate for regular TimeGAN (left) and TimeGAN with PLS+FM (right) during the validation dataset
+###### T-VaR(99%) estimate for regular TimeGAN (left) and TimeGAN with PLS+FM (right) during the validation dataset.
 
-![](Figures/Normal_TimeGAN_T_VaR.gif) ![](Figures/PLS_FM_TimeGAN_T_VaR.gif)
+![Normal TimeGAN T VaR](Figures/Normal_TimeGAN_T_VaR.gif) ![TimeGAN with PLS+FM T VaR](Figures/PLS_FM_TimeGAN_T_VaR.gif)
 
 ###### 1-day, 10-day, and 20-day VaR(99%) estimates for TimeGAN with PLS+FM during validation and test dataset.
 
-![](Figures/1_day_VaR_PLS_FM.gif) ![](Figures/10_day_VaR_PLS_FM.gif) ![](Figures/20_day_VaR_PLS_FM.gif)
+![1 day VaR TimeGAN with PLS+FM](Figures/1_day_VaR_PLS_FM.gif) ![10 day VaR TimeGAN with PLS+FM](Figures/10_day_VaR_PLS_FM.gif) ![20 day VaR TimeGAN with PLS+FM](Figures/20_day_VaR_PLS_FM.gif)
 
 ## Web application
 
@@ -53,7 +53,7 @@ Project is created with:
 
 ## Getting started
 
-To run this project, install it locally using npm:
+To run this project, install it locally using npm and run tgan.py:
 
 ```
 $ cd ../TimeGAN
