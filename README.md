@@ -12,11 +12,13 @@ Welcome to my MSc Thesis for completion of the MSc Quantitative Finance at the E
 
 ## Results
 
-We shows visualizations of the result below.
+Below is the visualization of the results presented in Table 4. 
 
 ###### T-VaR(99%) estimate for regular TimeGAN (left) and TimeGAN with PLS+FM (right) during the validation dataset.
 
 ![Normal TimeGAN T VaR](Figures/Normal_TimeGAN_T_VaR.gif) ![TimeGAN with PLS+FM T VaR](Figures/PLS_FM_TimeGAN_T_VaR.gif)
+
+Below is the visualization of the results presented in Table 4 and Table 5 for TimeGAN with PLS+FM.
 
 ###### 1-day, 10-day, and 20-day VaR(99%) estimates for TimeGAN with PLS+FM during validation and test dataset.
 
