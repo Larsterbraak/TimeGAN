@@ -103,7 +103,7 @@ Project is created with:
 * Tensorflow version: 2.2
 * Python version: 3.6.0
 * Tensorboard version: 2.2
-* Plotly Dash 3.7
+* Plotly Dash 1.16
 
 ## Inspiration
 
