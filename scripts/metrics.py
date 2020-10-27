@@ -26,10 +26,9 @@ Outputs
 import os
 
 # Change to the needed working directory
-os.chdir('C://Users/s157148/Documents/Github/TimeGAN')
+os.chdir('C://Users/s157148/Documents/Github/TimeGAN/scripts')
 
 import numpy as np
-from TSTR import value_at_risk
 from data_loading import create_dataset
 from scipy.stats import binom
 from training import RandomGenerator
@@ -77,8 +76,8 @@ def create_plot_simu(simulation_cum, T, ax):
     ax.set_ylabel('Short rate')
 
 def create_plot_nn(equivalent, simulation, T, ax):
-    ax.plot(range(T), equivalent, label = 'EONIA')
-    ax.plot(range(T), simulation, label = 'TimeGAN')
+    ax.plot(range(T), equivalent, label = 'EONIA 2')
+    ax.plot(range(T), simulation, label = 'TimeGAN with PLS+FM')
     ax.set_xlabel('Days')
     ax.set_ylim((-.015, 0.015))
     ax.set_ylabel('Short rate')

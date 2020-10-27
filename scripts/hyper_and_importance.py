@@ -7,9 +7,14 @@ Created on Sat Sep 26 11:24:28 2020
 import numpy as np
 import matplotlib.pyplot as plt
 
-results_dropout_0_1 = [[6.95, 2.19, 1.26, 1.087, 0.923],
+#results_dropout_0_1 = [[6.95, 2.19, 1.26, 1.087, 0.923],
+#                       [9.97, 9.64, 5.914, 5.568, 1.12],
+#                       [9.27, 9.71, 9.78, 7.78, 9.67]]
+
+results_dropout_0_1 = [[6.95, 2.19, 1.36, 1.098, 0.943],
                        [9.97, 9.64, 5.914, 5.568, 1.12],
                        [9.27, 9.71, 9.78, 7.78, 9.67]]
+
 
 results_dropout_0_2 = [[9.97, 9.64, 5.91, 5.57, 1.12],
                        [14.35, 9.87, 10, 10, 1.15],
@@ -45,9 +50,14 @@ plt.legend(proxy, [str(np.round(np.min(means),2)) + "-" + str(np.round(np.min(me
 plt.show()
 
 # Inspect the performance of different layers
-result_layers = [[1.26, 2.80, 2.13],
-                 [4.22, 5.914, 7.73],
-                 [4.08, 5.66, 9.78]]
+# result_layers = [[1.26, 2.80, 2.13],
+#                  [4.22, 5.914, 7.73],
+#                  [4.08, 5.66, 9.78]]
+
+result_layers = [[1.23, 2.74, 2.68],
+                 [4.02, 6.12, 7.21],
+                 [4.07, 5.88, 9.62]]
+
 
 layer_1 = [1, 2, 3]
 layer_2 = [1, 2, 3]

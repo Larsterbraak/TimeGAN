@@ -17,7 +17,7 @@ Outputs
 """
 
 import os
-os.chdir('C:/Users/s157148/Documents/GitHub/TimeGAN')
+os.chdir('C:/Users/s157148/Documents/GitHub/TimeGAN/')
 
 from sklearn.model_selection import KFold
 import tensorflow as tf
@@ -102,8 +102,8 @@ print('One hyperparameter setting took' + str(np.round(elapsed,1)) + ' seconds')
 from models.Supervisor import Supervisor
 
 # 5.1 Initialize the autoencoder and pre-train 10,0000 iterations
-autoencoder = Autoencoder(3, 0.1) 
-epochs = 300
+autoencoder = Autoencoder(4, 0.1) 
+epochs = 1000
 
 X_train = tf.data.Dataset.from_tensor_slices(tf.cast(X, tf.float32)).batch(32)
 for epoch in range(epochs):
@@ -114,41 +114,41 @@ for epoch in range(epochs):
 # 5.1.1 Visualize the embeddings produced by the autoencoder network
 df = pd.read_csv("data/Master_EONIA.csv", sep=";")   
 df_process = preprocessing.MinMaxScaler().fit_transform(df.iloc[:, 1:]) 
-latent_space = autoencoder.encode(df_process[3548:3568,:].reshape((1,20,11,))).numpy()
+latent_space = autoencoder.encode(df_process[3408:3448,:].reshape((1,40,11,))).numpy()
 
 # More efficient and elegant pyplot
 plt.style.use(['science', 'no-latex'])
-dates = np.ravel(df.Date[3548:3568].values).astype(str)
+dates = np.ravel(df.Date[3408:3448].values).astype(str)
 dates = [datetime.datetime.strptime(d,"%d-%m-%Y").date()
                for d in dates]
 
 from matplotlib import rcParams
 rcParams['axes.titlepad']=20
 rcParams['ytick.labelsize']=24
-rcParams['xtick.labelsize']=16
+rcParams['xtick.labelsize']=15
 
 plt.figure(figsize=(12,8), dpi=500)
-plt.plot_date(dates, df.EONIA.iloc[3548:3568].values, 'b-', color = '#0C5DA5') 
-plt.plot_date(dates, latent_space.reshape(20,5)[:, 0]/14 -0.38, 'b-', color = '#00B945')
-plt.plot_date(dates, latent_space.reshape(20,5)[:, 1]/14 -0.38, 'b-', color = '#FF9500')
-plt.plot_date(dates, latent_space.reshape(20,5)[:, 2]/14 -0.38, 'b-', color = '#FF2C00')
-plt.plot_date(dates, latent_space.reshape(20,5)[:, 3]/14 -0.38, 'b-', color = '#845B97')
-plt.plot_date(dates, latent_space.reshape(20,5)[:, 4]/14 -0.38, 'b-', color = '#474747')
+plt.plot_date(dates, df.EONIA.iloc[3408:3448].values, 'b-', color = '#0C5DA5') 
+plt.plot_date(dates, latent_space.reshape(40,4)[:, 0]/14 -0.393, 'b-', color = '#00B945')
+plt.plot_date(dates, latent_space.reshape(40,4)[:, 1]/14 -0.393, 'b-', color = '#FF9500')
+plt.plot_date(dates, latent_space.reshape(40,4)[:, 2]/14 -0.393, 'b-', color = '#FF2C00')
+plt.plot_date(dates, latent_space.reshape(40,4)[:, 3]/14 -0.393, 'b-', color = '#845B97')
+#plt.plot_date(dates, latent_space.reshape(20,5)[:, 4]/14 -0.38, 'b-', color = '#474747')
 ax = plt.gca()
-ax.set_xlim(datetime.date(2017, 10, 6), datetime.date(2017, 11, 2))
+ax.set_xlim(datetime.date(2017, 3, 22), datetime.date(2017, 5, 17))
 
 def to_transactions(x):
-    return (x + 0.38)*14
+    return (x + 0.393)*14
         
 def to_volume(x):
-    return x/14 -0.38
+    return x/14 -0.393
 
-ax.set_ylim((-.38, -.295))
+ax.set_ylim((-.375, -.32))
 secaxy = ax.secondary_yaxis('right', functions = (to_transactions, to_volume))
 secaxy.set_ylabel('Latent variable weight', fontsize=26, fontweight='roman', labelpad=20)
 plt.legend(('EONIA', '$\mathcal{H}_1$', '$\mathcal{H}_2$',
-            '$\mathcal{H}_3$', '$\mathcal{H}_4$', '$\mathcal{H}_5$'), 
-           fontsize = 'xx-large')
+            '$\mathcal{H}_3$', '$\mathcal{H}_4$'), 
+           fontsize = 'xx-large', loc='center right')
 plt.ylabel('Short rate [%]', fontsize=26, fontweight='roman', labelpad=20)
 plt.xlabel('Time ', fontsize=26, fontweight='roman', labelpad=20)
 plt.title(r'EONIA and latent variables over time', fontsize=30, 
@@ -156,15 +156,17 @@ plt.title(r'EONIA and latent variables over time', fontsize=30,
 #plt.savefig('EONIA_LATENT.png')
 plt.show()
 
+os.chdir('C:/Users/s157148/Documents/Research/Sequence models RNN, GRU, LTSM, GAN for QRM with Bayesian Forecasting with tail index approximation/Plots')
+
 # Increase the contrast of the picture
 from PIL import Image, ImageEnhance
-im1 = Image.open('EONIA_latent_variables_5_DIM.png')
+im1 = Image.open('EONIA_latent_variables_4_DIM.png')
 enhancer = ImageEnhance.Brightness(im1)
 
 enhancer2 = ImageEnhance.Contrast(im1)
 factor = 1.5
 im_output = enhancer2.enhance(factor)
-im_output.save('EONIA_latent_variables_5_DIM_contrast.png')
+im_output.save('EONIA_latent_variables_4_DIM_contrast.png')
 
 # 5.2 Train the supervsior model for different dropout for 10,000 iterations
 def train_supervisor(model, opt, original):

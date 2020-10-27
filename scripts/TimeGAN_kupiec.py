@@ -18,21 +18,24 @@ VaR(99%) based on Linear Regression estimation of 1-factor Vasicek for 20 day pr
 """
 
 import os
-os.chdir('C:/Users/s157148/Documents/GitHub/TimeGAN')
+os.chdir('C:/Users/s157148/Documents/GitHub/TimeGAN/scripts')
 
 import pandas as pd
 import numpy as np
 from sklearn import preprocessing
-from metrics import load_models, create_plot_nn
+from metrics import load_models
 from training import RandomGenerator
 import matplotlib.pyplot as plt
 import tensorflow as tf
 from descriptions_tensorboard import descr_images
 import datetime
+from data_loading import create_dataset
 from kalman_filter_vasicek import VaR as VaR_vasicek
-from variance_covariance import VaR as VaR_var_covar
+#from variance_covariance import VaR as VaR_var_covar
 from matplotlib import rcParams 
 from stylized_facts import descriptives
+
+os.chdir('C:/Users/s157148/Documents/GitHub/TimeGAN/')
 
 # 1. Import the EONIA data
 data = pd.read_csv("data/EONIA.csv", sep=";")
@@ -60,6 +63,63 @@ epochs = [2700]
 #hidden_dim = 3
 #epochs = np.linspace(50, 150, 3).astype(int)
 
+###############################################################################
+############## Coverage Test TimeGAN for pre-ESTER ############################
+###############################################################################
+
+os.chdir('C:/Users/s157148/Documents/GitHub/TimeGAN/data')
+pre_ESTER = np.array(pd.read_csv('pre_ESTER.csv', sep=';')[::-1].WT)
+
+# Import the pre-trained models
+_, recovery_model, _, generator_model, _ = load_models(8250, hparams, hidden_dim)
+
+# # Do the VaR(99%) calculations
+upper = []
+lower = []
+for j in range(379):
+    Z_mb = RandomGenerator(10000, [1, hidden_dim])
+    samples = recovery_model(generator_model(Z_mb)).numpy()
+    reshaped_data = samples.reshape((samples.shape[0]*samples.shape[1], 
+                                     samples.shape[2]))
+    
+    scaled_reshaped_data = scaler.inverse_transform(reshaped_data)
+    simulations = scaled_reshaped_data.reshape(((samples.shape[0],
+                                                 samples.shape[1], 
+                                                 samples.shape[2])))
+    
+    results = np.sum(simulations[:,:,8], axis=1)
+    
+    results.sort()
+    upper.append(results[9900])
+    lower.append(results[100])
+    print(j)
+
+upper_exceed = []    
+lower_exceed = []    
+for i in range(379):
+    upper_exceed.append(pre_ESTER[270+i] > (pre_ESTER[269+i] + upper[i]))
+    lower_exceed.append(pre_ESTER[270+i] < (pre_ESTER[269+i] + lower[i]))
+    
+upper_exceedances = np.sum(upper_exceed)
+lower_exceedances = np.sum(lower_exceed)  
+
+upper_VaR_vasicek = [VaR_vasicek(r_0=pre_ESTER[269+date], data=pre_ESTER[date:269+date], 
+                                 time=1, upward=True) - pre_ESTER[269+date]  for date in range(379)] 
+lower_VaR_vasicek = [VaR_vasicek(r_0=pre_ESTER[269+date], data=pre_ESTER[date:269+date],
+                                 time=1, upward=False) - pre_ESTER[269+date] for date in range(379)] 
+
+upper_Vasicek_exceed=[]
+lower_Vasicek_exceed=[]
+for i in range(379):
+    upper_Vasicek_exceed.append(pre_ESTER[270+i] > pre_ESTER[269+i] + upper_VaR_vasicek[i])
+    lower_Vasicek_exceed.append(pre_ESTER[270+i] < pre_ESTER[269+i] + lower_VaR_vasicek[i])    
+
+upper_exceedances_vasicek = np.sum(upper_Vasicek_exceed)
+lower_exceedances_vasicek = np.sum(lower_Vasicek_exceed)
+
+###############################################################################
+############## Coverage Test TimeGAN for EONIA ################################
+###############################################################################
 for epoch in epochs:
     load_epochs = epoch
 
@@ -405,8 +465,22 @@ plt.setp(ax.get_legend().get_texts(), fontsize='26')
 plt.axis('off')
 plt.show()
 
-# Insert the image for the Tensorboard because the server does not allow
-# us to make pictures
+###########################################################################
+############  Create Nearest Neighbours ###################################
+###########################################################################
+
+epoch = 150
+
+# Import the pre-trained models
+embedder_model, recovery_model, supervisor_model, generator_model, discriminator_model = load_models(epoch, hparams, hidden_dim)
+
+differences = np.diff(data)
+real = []
+for i in range(500):
+    real.append(differences[i:i+20])
+    
+real = np.array(real)
+
 def create_figure():
     figure = plt.figure(dpi=600,figsize=(25,4))
     plt.title('Nearest neighbour in the EONIA data')
@@ -418,13 +492,19 @@ def create_figure():
         simulation = scaler.inverse_transform(X_hat_scaled[0,:,:])[:,8]
         
         # Find the nearest neighbour in the dataset
-        closest = np.mean(((np.transpose(real) - simulation)**2), axis = 1).argsort()[0]
-        equivalent = real[:,closest]
+        closest = np.mean(((real - simulation)**2), axis = 1).argsort()[0]
+        equivalent = real[closest, :]
         
         # Start next subplot.
         if i < 4:
             ax = plt.subplot(1, 4, i + 1)#, title=str('Nearest Neighbour '+ str(i+1) ) )
-            create_plot_nn(equivalent, simulation, 20, ax)
+            ax.plot(range(20), equivalent, label = 'EONIA')
+            ax.plot(range(20), simulation, label = 'TimeGAN with WGAN')
+            ax.set_xlabel('Days')
+            ax.set_ylim((-.015, 0.015))
+            ax.set_ylabel('Short rate')
+            ax.legend(loc='upper right')
+            #create_plot_nn(equivalent, simulation, 20, ax)
         plt.grid(False)
     plt.tight_layout()
     return figure

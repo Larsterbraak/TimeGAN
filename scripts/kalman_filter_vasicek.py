@@ -17,7 +17,7 @@ VaR(99%) based on Linear Regression estimation of 1-factor Vasicek for 20 day pr
 """
 
 import os
-os.chdir('C:/Users/s157148/Documents/GitHub/TimeGAN')
+os.chdir('C:/Users/s157148/Documents/GitHub/TimeGAN/scripts')
     
 import pandas as pd
 from sklearn.linear_model import LinearRegression
@@ -52,6 +52,8 @@ def VaR(r_0, data, time, percentile=0.99, upward=True):
         return np.ravel(expectation + np.sqrt(variance) * tdistr.ppf(percentile, t_df))
     else:
         return np.ravel(expectation - np.sqrt(variance) * tdistr.ppf(percentile, t_df))   
+
+os.chdir('C:/Users/s157148/Documents/GitHub/TimeGAN')
 
 # 1. Import the EONIA data for validation error
 data = pd.read_csv("data/EONIA.csv", sep=";")
