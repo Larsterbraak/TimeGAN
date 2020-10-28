@@ -282,7 +282,7 @@ for epoch in epochs:
         plt.show()
 
 # Check what the influence is of the latent space
-epoch = 8250
+epoch = 5850
 
 # Import the pre-trained models
 embedder_model, recovery_model, supervisor_model, generator_model, discriminator_model = load_models(epoch, hparams, hidden_dim)    
@@ -292,7 +292,7 @@ Z_mb = np.zeros(shape=(1000, 20, 4))
 
 changes = np.linspace(0, 1, 5)
 
-fig, axs = plt.subplots(5, 4, figsize=(25,10), sharey=True)
+fig, axs = plt.subplots(5, 3, figsize=(25,10), sharey=True, dpi=600)
 rcParams['ytick.labelsize']=8
 rcParams['xtick.labelsize']=8
 
@@ -315,6 +315,7 @@ for i in range(5):
     axs[i, 0].set(xlabel='T', ylabel=r'$\Delta r_t$', ylim=(-0.15,0.20),
                   title = r'20-day EONIA')
     axs[i, 0].legend([r'$\mathcal{H}_1 =$ ' +str(np.round(changes[i],2))])
+    print(i)
     
 for i in range(5):
     latent_space = generator_model(Z_mb, False).numpy()
@@ -335,27 +336,8 @@ for i in range(5):
     axs[i, 1].set(xlabel='T', ylabel=r'$\Delta r_t$', ylim=(-0.15,0.20),
                   title = r'20-day EONIA') 
     axs[i, 1].legend([r'$\mathcal{H}_2 =$ ' +str(np.round(changes[i],2))])
-
-for i in range(5):
-    latent_space = generator_model(Z_mb, False).numpy()
+    print(i)
     
-    # Adjust the first dimension of the latent space
-    latent_space[:, :, 2] = latent_space[:, :, 2] + changes[i]
-    
-    samples = recovery_model(latent_space).numpy()
-    reshaped_data = samples.reshape((samples.shape[0]*samples.shape[1], 
-                                     samples.shape[2]))
-            
-    scaled_reshaped_data = scaler.inverse_transform(reshaped_data)
-    simulations = scaled_reshaped_data.reshape(((samples.shape[0],
-                                                 samples.shape[1], 
-                                                 samples.shape[2])))
-    
-    axs[i, 2].plot(range(1,21), simulations[:,:,8].transpose(), color='#FF9500')
-    axs[i, 2].set(xlabel='T', ylabel=r'$\Delta r_t$', ylim=(-0.15,0.20),
-                  title = r'20-day EONIA')  
-    axs[i, 2].legend([r'$\mathcal{H}_3 =$ ' +str(np.round(changes[i],2))])
-
 for i in range(5):
     latent_space = generator_model(Z_mb, False).numpy()
     
@@ -371,10 +353,31 @@ for i in range(5):
                                                  samples.shape[1], 
                                                  samples.shape[2])))
     
-    axs[i, 3].plot(range(1,21), simulations[:,:,8].transpose(), color='#FF2C00')
-    axs[i, 3].set(xlabel='T', ylabel=r'$\Delta r_t$', ylim=(-0.15,0.20),
-                  title = r'20-day EONIA')
-    axs[i, 3].legend([r'$\mathcal{H}_4 =$ ' +str(np.round(changes[i],2))])
+    axs[i, 2].plot(range(1,21), simulations[:,:,8].transpose(), color='#FF9500')
+    axs[i, 2].set(xlabel='T', ylabel=r'$\Delta r_t$', ylim=(-0.15,0.20),
+                  title = r'20-day EONIA')  
+    axs[i, 2].legend([r'$\mathcal{H}_4 =$ ' +str(np.round(changes[i],2))])
+    print(i)
+    
+# for i in range(5):
+#     latent_space = generator_model(Z_mb, False).numpy()
+    
+#     # Adjust the first dimension of the latent space
+#     latent_space[:, :, 3] = latent_space[:, :, 3] + changes[i]
+    
+#     samples = recovery_model(latent_space).numpy()
+#     reshaped_data = samples.reshape((samples.shape[0]*samples.shape[1], 
+#                                      samples.shape[2]))
+            
+#     scaled_reshaped_data = scaler.inverse_transform(reshaped_data)
+#     simulations = scaled_reshaped_data.reshape(((samples.shape[0],
+#                                                  samples.shape[1], 
+#                                                  samples.shape[2])))
+    
+#     axs[i, 3].plot(range(1,21), simulations[:,:,8].transpose(), color='#FF2C00')
+#     axs[i, 3].set(xlabel='T', ylabel=r'$\Delta r_t$', ylim=(-0.15,0.20),
+#                   title = r'20-day EONIA')
+#     axs[i, 3].legend([r'$\mathcal{H}_4 =$ ' +str(np.round(changes[i],2))])
 
 fig.tight_layout()
 
