@@ -1,6 +1,6 @@
 # TimeGAN for short rates
 
-Welcome to my MSc Thesis for completion of the MSc Quantitative Finance at the Erasmus University Rotterdam. In this study, I simulate 1-day, 10-day, and 20-day short rate paths for EONIA using the TimeGAN model. Next to that, I evaluate the ECB's mapping of EONIA to €STER and check the applicability of TimeGAN for interest rate simulation of €STER, i.e. after the EONIA-€STER transition.
+Welcome to my MSc Thesis for completion of the MSc Quantitative Finance at the Erasmus University Rotterdam. In this study, I simulate 1-day, 10-day, and 20-day short rate paths for EONIA using the TimeGAN model. Next to that, I evaluate the ECB's mapping of EONIA to €STER and check the applicability of TimeGAN for interest rate simulation of €STER, i.e. after the EONIA-€STER transition. See the [Thesis](Thesis.pdf) or check out the rest below!
 
 ## Table of contents
 * [Results](#results)
