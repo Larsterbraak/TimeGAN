@@ -70,6 +70,8 @@ epochs = [2700]
 os.chdir('C:/Users/s157148/Documents/GitHub/TimeGAN/data')
 pre_ESTER = np.array(pd.read_csv('pre_ESTER.csv', sep=';')[::-1].WT)
 
+pre_ESTER_days = np.array(pd.read_csv('pre_ESTER.csv', sep=';')[::-1].Date)
+
 # Import the pre-trained models
 _, recovery_model, _, generator_model, _ = load_models(8250, hparams, hidden_dim)
 
