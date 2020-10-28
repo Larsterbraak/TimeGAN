@@ -1,6 +1,6 @@
 # TimeGAN for short rates
 
-Welcome to my MSc Thesis for completion of the MSc Quantitative Finance at the Erasmus University Rotterdam. In this study, I simulate 1-day, 10-day, and 20-day short rate paths for EONIA using the TimeGAN model. Next to that, I evaluate the ECB's mapping of EONIA to €STER and check the applicability of TimeGAN for interest rate simulation of €STER, i.e. after the EONIA-€STER transition.
+Welcome to my MSc Thesis for completion of the MSc Quantitative Finance at the Erasmus University Rotterdam. In this study, I simulate 1-day, 10-day, and 20-day short rate paths for EONIA using the TimeGAN model. Next to that, I evaluate the ECB's mapping of EONIA to €STER and check the applicability of TimeGAN for interest rate simulation of €STER, i.e. after the EONIA-€STER transition. See the [Thesis](Thesis.pdf) or check out the rest below!
 
 ## Table of contents
 * [Results](#results)
@@ -27,8 +27,8 @@ Below is the visualization of the results presented in Table 4 and Table 5 for T
 ## Reproducing paper
 
 * 4 Training TimeGAN
-  * For **CPU** version of TimeGAN, see tgan.py  
-  * For **Multi-GPU** version of TimeGAN, see LISA/tgan.py
+  * For **CPU** version of TimeGAN, see [scripts/tgan.py](scripts/tgan.py)  
+  * For **Multi-GPU** version of TimeGAN, see [LISA/tgan.py](LISA/tgan.py)  
 * Visualization of training with Tensorboard
   - [TimeGAN](https://tensorboard.dev/experiment/rCW95sn7TNabbXJY4a1gew)
   - [TimeGAN WGAN-GP](https://tensorboard.dev/experiment/vb0fQUArTyqoNIn8RTBgDA)
@@ -36,17 +36,17 @@ Below is the visualization of the results presented in Table 4 and Table 5 for T
   - [TimeGAN FM](https://tensorboard.dev/experiment/1fQKZdtRTPCED1GsEdpUOg)
   - [TimeGAN PLS+FM](https://tensorboard.dev/experiment/kqNuBA7aR96gB07zuM7z5g)
 * 5 Data 
-  * To produce Figure 5 until 9, see plotting.py  
-  * To produce Table 3, see stylized_facts.py
+  * To produce Figure 5 until 9, see [plotting.py](scripts/plotting.py)  
+  * To produce Table 3, see [stylized_facts.py](scripts/stylized_facts.py)
 * 7.1 Model selection
-  * To produce Figure 11 until 14, see autoencoder_training.py and hyper_and_importance.py
+  * To produce Figure 11 until 14, see [autoencoder_training.py](scripts/autoencoder_training.py) and [hyper_and_importance.py](hyper_and_importance.py)  
 * 7.2 Coverage test
-  * To produce Table 4, see TimeGAN_kupiec.py, kalman_filter_vasicek.py, and variance_covariance.py 
+  * To produce Table 4, see [TimeGAN_kupiec.py](scripts/TimeGAN_kupiec.py), [kalman_filter_vasicek.py](scripts/kalman_filter_vasicek.py), and [variance_covariance.py](scripts/variance_covariance.py) 
 * 7.3 Diversity of simulations
-  * To produce Figure 22 and 23, see TimeGAN_kupiec.py
-  * To produce Figures 24, 36 until 43 see main.py
+  * To produce Figure 22 and 23, see [TimeGAN_kupiec.py](scripts/TimeGAN_kupiec.py)
+  * To produce Figures 24, 36 until 43 see [main.py](scripts/main.py)
 * 7.4 ECB's proposed mapping
-  * To produce Figures 26 until 28, see metrics.py, stylized_facts.py and main.py
+  * To produce Figures 26 until 28, see metrics.py, [stylized_facts.py](scripts/stylized_facts.py) and [main.py](scripts/main.py)
 
 ## Web application
 
@@ -103,7 +103,7 @@ Project is created with:
 * Tensorflow version: 2.2
 * Python version: 3.6.0
 * Tensorboard version: 2.2
-* Plotly Dash 3.7
+* Plotly Dash 1.16
 
 ## Inspiration
 
